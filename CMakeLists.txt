@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
-project($ENV{PROJECT_NAME} LANGUAGES CXX)
+set(APP_NAME $ENV{PROJECT_NAME})
+project(${APP_NAME} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,6 +21,6 @@ file(GLOB_RECURSE PROJECT_SOURCES
 	"src/*.cpp"
 )
 
-add_executable($ENV{PROJECT_NAME} ${PROJECT_SOURCES})
-target_include_directories($ENV{PROJECT_NAME} PRIVATE src src/services src/widgets)
-target_link_libraries($ENV{PROJECT_NAME} PRIVATE Qt6::Widgets)
+add_executable(${APP_NAME} ${PROJECT_SOURCES})
+target_include_directories(${APP_NAME} PRIVATE src src/services src/widgets)
+target_link_libraries(${APP_NAME} PRIVATE Qt6::Widgets)

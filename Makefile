@@ -16,8 +16,8 @@ container:
 	@echo "Container $(CONTAINER) built"
 
 project:
-	@docker run --rm -e DISPLAY="$$DISPLAY" -e EXECUTABLE="$$EXECUTABLE" -e PROJECT_NAME="$$PROJECT_NAME" -v "$$(pwd)":/workspace $(CONTAINER) cmake -S . -B build -G Ninja
-	@docker run --rm -e DISPLAY="$$DISPLAY" -e EXECUTABLE="$$EXECUTABLE" -e PROJECT_NAME="$$PROJECT_NAME" -v "$$(pwd)":/workspace $(CONTAINER) cmake --build build
+	@docker run --rm -e DISPLAY="$$DISPLAY" -e EXECUTABLE="$(EXECUTABLE)" -e PROJECT_NAME="$(PROJECT_NAME)" -v "$$(pwd)":/workspace $(CONTAINER) cmake -S . -B build -G Ninja
+	@docker run --rm -e DISPLAY="$$DISPLAY" -e EXECUTABLE="$(EXECUTABLE)" -e PROJECT_NAME="$(PROJECT_NAME)" -v "$$(pwd)":/workspace $(CONTAINER) cmake --build build
 	@echo "Project $(EXECUTABLE) built"
 
 run:
