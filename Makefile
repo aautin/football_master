@@ -1,9 +1,6 @@
 include .env
 export $(shell sed 's/=.*//' .env)
 
-CONTAINER ?= football_analytics_container
-EXECUTABLE ?= FOOTBALL_ANALYTICS
-
 .PHONY: all install container project run run42 rmcontainer rmproject rm re redeploy redeploy42
 
 all: container project run42
@@ -40,6 +37,7 @@ rmcontainer:
 	@docker rmi $(CONTAINER) --force
 	@echo "Container $(CONTAINER) removed"
 rmproject:
+	@rm -rf build
 	@echo "Project $(EXECUTABLE) removed"
 
 rm: rmcontainer rmproject

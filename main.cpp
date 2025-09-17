@@ -7,7 +7,7 @@ int main(int argc, char *argv[]) {
 
     QWidget window;
     window.show();
-    window.setWindowTitle("Football Analytics");
+    window.setWindowTitle("Football Master");
 
     return app.exec();
 }
