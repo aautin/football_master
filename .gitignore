@@ -18,6 +18,7 @@
 # Generated files
 moc_*
 ui_*
+!ui_diagram.png
 qrc_*
 
 # Other
