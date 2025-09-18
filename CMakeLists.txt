@@ -19,6 +19,7 @@ file(GLOB_RECURSE PROJECT_SOURCES
 	CONFIGURE_DEPENDS
 	"main.cpp"
 	"src/*.cpp"
+	"src/*/*.cpp"
 )
 
 add_executable(${APP_NAME} ${PROJECT_SOURCES})

@@ -111,8 +111,9 @@ void MainWindow::buildUi() {
 				background: #3a4b5d;
 				color: white;
 			}
-			QPushButton:hover:not(:checked) { background: #3a4b5d; color: white; }
-			QPushButton:focus { outline: none; } /* évite l’indicateur de focus si nécessaire */
+			QPushButton:hover { background: #3d4c5cff; color: white; }
+			QPushButton:checked:hover { background: #3a4b5d; color: white; }
+			QPushButton:focus { outline: none; }
 	)";
 
 	QWidget* visualSelector = new QWidget();

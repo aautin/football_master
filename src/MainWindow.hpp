@@ -11,4 +11,6 @@ class MainWindow : public QMainWindow {
 	private:
 		void	customizeWindow();
 		void	buildUi();
+
+		
 };
