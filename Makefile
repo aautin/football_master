@@ -28,10 +28,10 @@ run42:
 	@echo "Project $(EXECUTABLE) run"
 	@xhost +local:docker
 	@docker run --rm -e DISPLAY="$$DISPLAY" -e XDG_RUNTIME_DIR="$$XDG_RUNTIME_DIR" \
-		-v /tmp/.X11-unix:/tmp/.X11-unix \
-		-v "$$(pwd)":/workspace \
-		--device /dev/dri \
-		$(CONTAINER) ./build/$(EXECUTABLE)
+        -v /tmp/.X11-unix:/tmp/.X11-unix \
+        -v "$$(pwd)":/workspace \
+        --device /dev/dri \
+        $(CONTAINER) sh -c './build/$(EXECUTABLE) > /workspace/last_run.log 2>&1'
 
 rmcontainer:
 	@docker rmi $(CONTAINER) --force
