@@ -9,7 +9,7 @@ install-qt:
 	@sudo apt update
 	@sudo apt install qt6-base-dev qt6-base-dev-tools libgl1-mesa-dev libopengl-dev
 	@sudo apt install libxcb-xinerama0
-	@echo "QT installed on on host"
+	@echo "QT installed on host"
 
 container:
 	@docker build -t $(CONTAINER) .

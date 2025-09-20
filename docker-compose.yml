@@ -1,0 +1,54 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:15
+    container_name: football-db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+    networks:
+      - football-net
+    ports:
+      - "${DB_PORT}:5432"
+
+  scraper:
+    build: ./scraper
+    container_name: football-scraper
+    environment:
+      DB_HOST: db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    depends_on:
+      - db
+    networks:
+      - football-net
+    ports:
+      - "${SCRAPER_PORT}:${SCRAPER_PORT}"
+
+  qt:
+    build: ./qt
+    container_name: football-qt
+    environment:
+      DB_HOST: db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    depends_on:
+      - db
+    networks:
+      - football-net
+    ports:
+      - "${QT_PORT}:${QT_PORT}"
+
+volumes:
+  db_data:
+
+networks:
+  football-net:
+    driver: bridge
