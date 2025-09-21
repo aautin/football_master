@@ -31,3 +31,5 @@ qrc_*
 *.dylib
 *.app
 *.log
+
+db/init/02-data.sql
