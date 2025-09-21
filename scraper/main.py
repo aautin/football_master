@@ -54,69 +54,81 @@ def insert_teams(connection, teams):
         connection.rollback()
 
 def insert_matches(connection, matches):
-    try:
-        cursor = connection.cursor()
-        for match in matches:
-            cursor.execute("""
-                INSERT INTO Matches (
-                    url, id, competition_id, match_date, team1_id, team2_id,
-                    score1, score2, possession1, possession2,
-                    passes1, passes2, successful_passes1, successful_passes2,
-                    shots1, shots2, shots_on_target1, shots_on_target2
-                ) VALUES (
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                    %s, %s, %s, %s, %s, %s, %s, %s
-                ) ON CONFLICT (url) DO UPDATE SET
-                    score1 = EXCLUDED.score1,
-                    score2 = EXCLUDED.score2,
-                    possession1 = EXCLUDED.possession1,
-                    possession2 = EXCLUDED.possession2,
-                    passes1 = EXCLUDED.passes1,
-                    passes2 = EXCLUDED.passes2,
-                    successful_passes1 = EXCLUDED.successful_passes1,
-                    successful_passes2 = EXCLUDED.successful_passes2,
-                    shots1 = EXCLUDED.shots1,
-                    shots2 = EXCLUDED.shots2,
-                    shots_on_target1 = EXCLUDED.shots_on_target1,
-                    shots_on_target2 = EXCLUDED.shots_on_target2
-            """, (
-                match['url'], match['id'], match['competition_id'], 
-                '2025-09-21',  # Date temporaire
-                match['team1_id'], match['team2_id'],
-                match.get('score1'), match.get('score2'),
-                match.get('possession1'), match.get('possession2'),
-                match.get('passes1'), match.get('passes2'),
-                match.get('successful_passes1'), match.get('successful_passes2'),
-                match.get('shots1'), match.get('shots2'),
-                match.get('shots_on_target1'), match.get('shots_on_target2')
-            ))
-        connection.commit()
-        cursor.close()
-        print(f"✅ {len(matches)} matches insérés")
-    except psycopg2.Error as e:
-        print(f"❌ Erreur lors de l'insertion des matches: {e}")
-        connection.rollback()
+	required_fields = [
+		"id", "competition_id", "team1_id", "team2_id",
+		"score1", "score2", "possession1", "possession2",
+		"passes1", "passes2", "successful_passes1", "successful_passes2",
+		"shots1", "shots2", "shots_on_target1", "shots_on_target2"
+	]
+	matches = [
+		match for match in matches
+		if all(field in match and match[field] is not None for field in required_fields)
+	]
+	for match in matches: del match["url"]
+	try:
+		cursor = connection.cursor()
+		for match in matches:
+			cursor.execute("""
+				INSERT INTO Matches (
+					id, competition_id, team1_id, team2_id,
+					score1, score2, possession1, possession2,
+					passes1, passes2, successful_passes1, successful_passes2,
+					shots1, shots2, shots_on_target1, shots_on_target2
+				) VALUES (
+					%s, %s, %s, %s, %s, %s, %s, %s,
+					%s, %s, %s, %s, %s, %s, %s, %s
+				) ON CONFLICT (id) DO UPDATE SET
+					score1 = EXCLUDED.score1,
+					score2 = EXCLUDED.score2,
+					possession1 = EXCLUDED.possession1,
+					possession2 = EXCLUDED.possession2,
+					passes1 = EXCLUDED.passes1,
+					passes2 = EXCLUDED.passes2,
+					successful_passes1 = EXCLUDED.successful_passes1,
+					successful_passes2 = EXCLUDED.successful_passes2,
+					shots1 = EXCLUDED.shots1,
+					shots2 = EXCLUDED.shots2,
+					shots_on_target1 = EXCLUDED.shots_on_target1,
+					shots_on_target2 = EXCLUDED.shots_on_target2
+			""", (
+				match['id'], match['competition_id'],
+				match['team1_id'], match['team2_id'],
+				match.get('score1'), match.get('score2'),
+				match.get('possession1'), match.get('possession2'),
+				match.get('passes1'), match.get('passes2'),
+				match.get('successful_passes1'), match.get('successful_passes2'),
+				match.get('shots1'), match.get('shots2'),
+				match.get('shots_on_target1'), match.get('shots_on_target2')
+			))
+		connection.commit()
+		cursor.close()
+		print(f"✅ {len(matches)} matches insérés")
+	except psycopg2.Error as e:
+		print(f"❌ Erreur lors de l'insertion des matches: {e}")
+		connection.rollback()
 
 
-def fetch_url(url, cookie):
-	time.sleep(6) # FBref rate limiting 10 requests per minute
+def fetch_url(url, session=None):
+	time.sleep(7) # FBref rate limiting 10 requests per minute
 	try:
 		headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-GB,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-            'Cookie': cookie
+			'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0',
+			'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+			'Accept-Language': 'en-GB,en;q=0.5',
+			'Accept-Encoding': 'gzip, deflate, br, zstd',
+			'Connection': 'keep-alive',
+			'Upgrade-Insecure-Requests': '1',
+			'Sec-Fetch-Dest': 'document',
+			'Sec-Fetch-Mode': 'navigate',
+			'Sec-Fetch-Site': 'same-origin',
+			'Sec-Fetch-User': '?1',
+			'Cache-Control': 'no-cache',
+			'Pragma': 'no-cache'
 		}
-		response = requests.get(url, headers=headers)
+		
+		if session: response = session.get(url, headers=headers)
+		else: response = requests.get(url, headers=headers)
+
 		response.raise_for_status()
 		return response.text
 	except requests.RequestException as e:
@@ -179,7 +191,7 @@ def getMatchesBasicAttributes(soups, competitions, teams):
 						team1, team2 = getMatchTeams(it["href"], teams)
 						if team1 is not None and team2 is not None:
 							matches.append({
-								"url": it["href"], 
+								"url": it["href"],
 								"id": int(it["href"].split("/")[3], 16), 
 								"competition_id": competitions[i]["id"], 
 								"team1_id": int(team1), 
@@ -303,11 +315,11 @@ def getOnlyNewMatches(matches, connection):
 	new_matches = []
 	try:
 		cursor = connection.cursor()
-		match_urls = [match['url'] for match in matches]
-		query = sql.SQL("SELECT url FROM Matches WHERE url = ANY(%s)")
-		cursor.execute(query, (match_urls,))
-		existing_urls = {row['url'] for row in cursor.fetchall()}
-		new_matches = [match for match in matches if match['url'] not in existing_urls]
+		match_ids = [match['id'] for match in matches]
+		query = sql.SQL("SELECT id FROM Matches WHERE id = ANY(%s)")
+		cursor.execute(query, (match_ids,))
+		existing_ids = {row['id'] for row in cursor.fetchall()}
+		new_matches = [match for match in matches if match['id'] not in existing_ids]
 		cursor.close()
 
 	except psycopg2.Error as e:
@@ -318,20 +330,23 @@ def getOnlyNewMatches(matches, connection):
 
 if __name__ == "__main__":
 	time.sleep(3)
+
 	base_url = "https://fbref.com"
-	cookie = requests.get(base_url).headers.get('set-Cookie')
+
+	session = requests.Session()
+	session.get(base_url)
+
 	db_connection = connect_db()
 
 	# Competitions : entries + soups
 	competition_entries = [
 		"/en/comps/11/schedule/Serie-A-Scores-and-Fixtures",
-		"/en/comps/20/schedule/Bundesliga-Scores-and-Fixtures"
 		"/en/comps/9/schedule/Premier-League-Scores-and-Fixtures",
-		"/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures"
+		"/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures",
+		"/en/comps/20/schedule/Bundesliga-Scores-and-Fixtures"
 	]
-	competition_soups = [BeautifulSoup(fetch_url(base_url + entry, cookie), "html.parser") for entry in competition_entries]
+	competition_soups = [BeautifulSoup(fetch_url(base_url + entry, session), "html.parser") for entry in competition_entries]
 	# ---------------
-
 
 	competitions = getCompetitionsAttributes(competition_entries)
 	teams = getTeamsAttributes(competition_soups)
@@ -339,16 +354,14 @@ if __name__ == "__main__":
 	insert_teams(db_connection, teams)
 
 	matches = getMatchesBasicAttributes(competition_soups, competitions, teams)
-	print(f"Total matches found: {len(matches)}")
 	matches = getOnlyNewMatches(matches, db_connection)
-	print(f"New matches to insert: {len(matches)}")
 
 	# Matches : entries + soups
 	match_entries = [match["url"] for match in matches]
-	match_soups = [BeautifulSoup(fetch_url(base_url + entry, cookie), "html.parser") for entry in match_entries]
+	match_soups = [BeautifulSoup(fetch_url(base_url + entry, session), "html.parser") for entry in match_entries]
 	# ---------------
 
 	matches = getMatchesAttributes(match_soups, matches)
 	insert_matches(db_connection, matches)
 
-	db.close_connection(db_connection)
+	db_connection.close()

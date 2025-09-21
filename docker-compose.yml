@@ -29,7 +29,7 @@ services:
     networks:
       - football-net
     ports:
-      - "${SCRAPER_PORT}:${SCRAPER_PORT}"
+      - "${SCRAPER_PORT}:8000"
 
   qt:
     build: ./qt
@@ -43,8 +43,6 @@ services:
       - db
     networks:
       - football-net
-    ports:
-      - "${QT_PORT}:${QT_PORT}"
 
 volumes:
   db_data:

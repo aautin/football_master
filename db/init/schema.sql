@@ -12,10 +12,8 @@ CREATE TABLE Teams (
 
 -- Matches (always team1 and team2)
 CREATE TABLE Matches (
-  url VARCHAR(255) UNIQUE NOT NULL,
   id BIGINT PRIMARY KEY,
   competition_id BIGINT NOT NULL,
-  match_date DATE NOT NULL,
   team1_id BIGINT NOT NULL,
   team2_id BIGINT NOT NULL,
   score1 INT,
