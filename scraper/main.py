@@ -2,10 +2,17 @@ import requests
 from bs4 import BeautifulSoup
 import time
 
+import threading
+from flask import Flask, jsonify
+
+
 import psycopg2
 import os
 from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
+
+app = Flask(__name__)
+scraping_status = {"running": False, "last_result": None}
 
 def connect_db():
     try:
@@ -328,40 +335,84 @@ def getOnlyNewMatches(matches, connection):
 
 	return new_matches
 
-if __name__ == "__main__":
-	time.sleep(3)
-
+def run_scraper():
+	global scraping_status
+	scraping_status["running"] = True
 	base_url = "https://fbref.com"
 
-	session = requests.Session()
-	session.get(base_url)
+	try:
+		timestamp_start = time.time()
 
-	db_connection = connect_db()
+		session = requests.Session()
+		session.get(base_url)
 
-	# Competitions : entries + soups
-	competition_entries = [
-		"/en/comps/11/schedule/Serie-A-Scores-and-Fixtures",
-		"/en/comps/9/schedule/Premier-League-Scores-and-Fixtures",
-		"/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures",
-		"/en/comps/20/schedule/Bundesliga-Scores-and-Fixtures"
-	]
-	competition_soups = [BeautifulSoup(fetch_url(base_url + entry, session), "html.parser") for entry in competition_entries]
-	# ---------------
+		db_connection = connect_db()
 
-	competitions = getCompetitionsAttributes(competition_entries)
-	teams = getTeamsAttributes(competition_soups)
-	insert_competitions(db_connection, competitions)
-	insert_teams(db_connection, teams)
+		# Competitions : entries + soups
+		competition_entries = [
+			"/en/comps/11/schedule/Serie-A-Scores-and-Fixtures",
+			"/en/comps/9/schedule/Premier-League-Scores-and-Fixtures",
+			"/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures",
+			"/en/comps/20/schedule/Bundesliga-Scores-and-Fixtures"
+		]
+		competition_soups = [BeautifulSoup(fetch_url(base_url + entry, session), "html.parser") for entry in competition_entries]
+		# ---------------
 
-	matches = getMatchesBasicAttributes(competition_soups, competitions, teams)
-	matches = getOnlyNewMatches(matches, db_connection)
+		competitions = getCompetitionsAttributes(competition_entries)
+		teams = getTeamsAttributes(competition_soups)
+		insert_competitions(db_connection, competitions)
+		insert_teams(db_connection, teams)
 
-	# Matches : entries + soups
-	match_entries = [match["url"] for match in matches]
-	match_soups = [BeautifulSoup(fetch_url(base_url + entry, session), "html.parser") for entry in match_entries]
-	# ---------------
+		matches = getMatchesBasicAttributes(competition_soups, competitions, teams)
+		matches = getOnlyNewMatches(matches, db_connection)
 
-	matches = getMatchesAttributes(match_soups, matches)
-	insert_matches(db_connection, matches)
+		# Matches : entries + soups
+		match_entries = [match["url"] for match in matches]
+		match_soups = [BeautifulSoup(fetch_url(base_url + entry, session), "html.parser") for entry in match_entries]
+		# ---------------
 
-	db_connection.close()
+		matches = getMatchesAttributes(match_soups, matches)
+		insert_matches(db_connection, matches)
+
+		db_connection.close()
+
+		timestamp_end = time.time()
+		result = {
+			"success": True,
+			"message": f"✅ Scraping terminé",
+			"duration": timestamp_end - timestamp_start,
+		}
+		scraping_status["last_result"] = result
+	except Exception as e:
+		result = {
+			"success": False,
+			"error": f"❌ Erreur lors du scraping: {e}"
+		}
+		scraping_status["last_result"] = result
+	finally:
+		scraping_status["running"] = False
+		if 'db_connection' in locals() and db_connection:
+			db_connection.close()
+
+
+@app.route('/do-it', methods=['POST'])
+def trigger_scraping():
+	if scraping_status["running"]:
+		return jsonify({"error": "Scraping déjà en cours"}), 409
+	
+	# Lancer dans un thread séparé
+	thread = threading.Thread(target=run_scraper)
+	thread.start()
+	
+	return jsonify({"message": "Scraping démarré", "status": "started"}), 200
+
+@app.route('/status', methods=['GET'])
+def get_status():
+	return jsonify({
+		"running": scraping_status["running"],
+		"last_result": scraping_status["last_result"]
+	})
+
+if __name__ == "__main__":
+    print("🌐 Serveur Flask démarré sur le port 8000")
+    app.run(host='0.0.0.0', port=8000, debug=False)

@@ -29,7 +29,7 @@ services:
     networks:
       - football-net
     ports:
-      - "${SCRAPER_PORT}:8000"
+      - "${SCRAPER_PORT}:${SCRAPER_PORT_INTERNAL}"
 
   qt:
     build: ./qt
@@ -39,8 +39,11 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
+      SCRAPER_HOST: scraper
+      SCRAPER_PORT: ${SCRAPER_PORT_INTERNAL}
     depends_on:
       - db
+      - scraper
     networks:
       - football-net
 
