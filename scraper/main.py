@@ -18,7 +18,7 @@ def connect_db():
     try:
         connection = psycopg2.connect(
             host=os.getenv('DB_HOST'),
-            port=os.getenv('DB_PORT'),
+            port=5432,
             database=os.getenv('DB_NAME'),
             user=os.getenv('DB_USER'),
             password=os.getenv('DB_PASSWORD'),
@@ -350,9 +350,9 @@ def run_scraper():
 
 		# Competitions : entries + soups
 		competition_entries = [
-			"/en/comps/11/schedule/Serie-A-Scores-and-Fixtures",
-			"/en/comps/9/schedule/Premier-League-Scores-and-Fixtures",
-			"/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures",
+			# "/en/comps/11/schedule/Serie-A-Scores-and-Fixtures",
+			# "/en/comps/9/schedule/Premier-League-Scores-and-Fixtures",
+			# "/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures",
 			"/en/comps/20/schedule/Bundesliga-Scores-and-Fixtures"
 		]
 		competition_soups = [BeautifulSoup(fetch_url(base_url + entry, session), "html.parser") for entry in competition_entries]
@@ -414,5 +414,5 @@ def get_status():
 	})
 
 if __name__ == "__main__":
-    print("🌐 Serveur Flask démarré sur le port 8000")
+    print(f"🌐 Serveur Flask démarré sur le port 8000")
     app.run(host='0.0.0.0', port=8000, debug=False)

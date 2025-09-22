@@ -1,6 +1,6 @@
 #include <QApplication>
 #include <QWidget>
-#include "src/MainWindow.hpp"
+#include "MainWindow.hpp"
 
 int main(int argc, char *argv[], char *envp[]) {
     QApplication app(argc, argv);

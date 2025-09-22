@@ -47,14 +47,14 @@ void MainWindow::headerUi() {
 	QPushButton* btRefresh = new QPushButton(this);
 	btRefresh->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff");
 	grid->addWidget(btRefresh, 0, 11, 1, 1);
-	btRefresh->setIcon(QIcon("assets/refresh.png"));
+	btRefresh->setIcon(QIcon(":/assets/refresh.png"));
 	btRefresh->setIconSize(btRefresh->size() * 0.9);
 	btRefresh->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
 	QPushButton* btMinimize = new QPushButton(this);
 	btMinimize->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff");
 	grid->addWidget(btMinimize, 0, 12, 1, 1);
-	btMinimize->setIcon(QIcon("assets/minimize.png"));
+	btMinimize->setIcon(QIcon(":/assets/minimize.png"));
 	btMinimize->setIconSize(btMinimize->size() * 0.9);
 	btMinimize->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	connect(btMinimize, &QPushButton::clicked, this, [this]() { this->showMinimized(); });
@@ -62,7 +62,7 @@ void MainWindow::headerUi() {
 	QPushButton* btClose = new QPushButton(this);
 	btClose->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff");
 	grid->addWidget(btClose, 0, 13, 1, 1);
-	btClose->setIcon(QIcon("assets/close.png"));
+	btClose->setIcon(QIcon(":/assets/close.png"));
 	btClose->setIconSize(btClose->size() * 1);
 	btClose->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	connect(btClose, &QPushButton::clicked, this, [this]() { this->close(); });

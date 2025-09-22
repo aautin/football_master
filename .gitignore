@@ -2,10 +2,10 @@
 !.vscode/c_cpp_properties.json
 
 # CMake build directories
-/build/
-/CMakeFiles/
-/CMakeCache.txt
-/cmake_install.cmake
+qt/build/
+qt/CMakeFiles/
+qt/CMakeCache.txt
+qt/cmake_install.cmake
 
 # Qt Creator files
 *.user

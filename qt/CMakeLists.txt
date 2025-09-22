@@ -19,11 +19,12 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
 file(GLOB_RECURSE PROJECT_SOURCES
 	CONFIGURE_DEPENDS
-	"main.cpp"
 	"src/*.cpp"
 	"src/*/*.cpp"
 )
 
-add_executable(${APP_NAME} ${PROJECT_SOURCES})
+set(PROJECT_RESOURCES "${CMAKE_CURRENT_SOURCE_DIR}/resources.qrc")
+
+add_executable(${APP_NAME} ${PROJECT_SOURCES} ${PROJECT_RESOURCES})
 target_include_directories(${APP_NAME} PRIVATE src src/services src/widgets src/utils)
 target_link_libraries(${APP_NAME} PRIVATE Qt6::Widgets)

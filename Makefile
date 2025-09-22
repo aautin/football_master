@@ -1,48 +1,46 @@
 include .env
 export $(shell sed 's/=.*//' .env)
 
-.PHONY: all install container project run run42 rmcontainer rmproject rm re redeploy redeploy42
+# Variables détectées automatiquement (pas dans .env)
+export DISPLAY := $(shell echo $$DISPLAY)
+export XDG_RUNTIME_DIR := $(shell echo $$XDG_RUNTIME_DIR)
+export UID := $(shell id -u)
+export GID := $(shell id -g)
 
-all: container project run42
+.PHONY: up down build build-qt run-qt shell-qt logs clean dev
 
-install-qt:
-	@sudo apt update
-	@sudo apt install qt6-base-dev qt6-base-dev-tools libgl1-mesa-dev libopengl-dev
-	@sudo apt install libxcb-xinerama0
-	@echo "QT installed on host"
+up:
+	@echo "🚀 Démarrage des services..."
+	@echo "📺 DISPLAY: $(DISPLAY)"
+	@echo "🗂️  XDG_RUNTIME_DIR: $(XDG_RUNTIME_DIR)"
+	docker-compose up -d
 
-container:
-	@docker build -t $(CONTAINER) .
-	@echo "Container $(CONTAINER) built"
+down:
+	@echo "🛑 Arrêt des services..."
+	docker-compose down --timeout 2
 
-project:
-	@docker run --rm -e DISPLAY="$$DISPLAY" -e EXECUTABLE="$(EXECUTABLE)" -e PROJECT_NAME="$(PROJECT_NAME)" -v "$$(pwd)":/workspace $(CONTAINER) cmake -S . -B build -G Ninja
-	@docker run --rm -e DISPLAY="$$DISPLAY" -e EXECUTABLE="$(EXECUTABLE)" -e PROJECT_NAME="$(PROJECT_NAME)" -v "$$(pwd)":/workspace $(CONTAINER) cmake --build build
-	@echo "Project $(EXECUTABLE) built"
+build:
+	@echo "🔨 Construction des conteneurs..."
+	docker-compose build --build-arg USER_ID=$(UID) --build-arg GROUP_ID=$(GID)
 
-run:
-	@./build/$(EXECUTABLE)
-	@echo "Project $(EXECUTABLE) run"
+build-qt:
+	@echo "🔨 Build du projet Qt..."
+	docker-compose exec qt cmake -S /app -B /app/build
+	docker-compose exec qt cmake --build /app/build
 
-run42:
-	@echo "Project $(EXECUTABLE) run"
-	@xhost +local:docker
-	@docker run --rm -e DISPLAY="$$DISPLAY" -e XDG_RUNTIME_DIR="$$XDG_RUNTIME_DIR" \
-        -v /tmp/.X11-unix:/tmp/.X11-unix \
-        -v "$$(pwd)":/workspace \
-        --device /dev/dri \
-        $(CONTAINER) sh -c './build/$(EXECUTABLE) > /workspace/last_run.log 2>&1'
+run-qt:
+	@echo "🖥️ Lancement de l'application Qt..."
+	@xhost +local:docker 2>/dev/null || echo "⚠️ xhost non disponible"
+	docker-compose exec qt /app/build/$(EXECUTABLE)
 
-rmcontainer:
-	@docker rmi $(CONTAINER) --force
-	@echo "Container $(CONTAINER) removed"
-rmproject:
-	@rm -rf build
-	@echo "Project $(EXECUTABLE) removed"
+shell-qt:
+	docker-compose exec qt bash
 
-rm: rmcontainer rmproject
+logs:
+	docker-compose logs -f
 
-re: rm all
+clean:
+	@echo "🧹 Nettoyage..."
+	docker-compose down -v
 
-redeploy: project run
-redeploy42: project run42
+dev: up build-qt run-qt

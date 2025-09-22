@@ -1,0 +1,7 @@
+<RCC>
+  <qresource prefix="/">
+    <file>assets/close.png</file>
+    <file>assets/minimize.png</file>
+    <file>assets/refresh.png</file>
+  </qresource>
+</RCC>

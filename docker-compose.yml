@@ -13,8 +13,8 @@ services:
       - ./db/init:/docker-entrypoint-initdb.d
     networks:
       - football-net
-    ports:
-      - "${DB_PORT}:5432"
+    expose:
+      - 5432
 
   scraper:
     build: ./scraper
@@ -28,10 +28,11 @@ services:
       - db
     networks:
       - football-net
-    ports:
-      - "${SCRAPER_PORT}:${SCRAPER_PORT_INTERNAL}"
+    expose:
+      - 8000
 
   qt:
+    user: "${UID}:${GID}"
     build: ./qt
     container_name: football-qt
     environment:
@@ -40,7 +41,14 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       SCRAPER_HOST: scraper
-      SCRAPER_PORT: ${SCRAPER_PORT_INTERNAL}
+      DISPLAY: ${DISPLAY}
+      XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR}
+      PROJECT_NAME: ${PROJECT_NAME}
+      EXECUTABLE: ${EXECUTABLE}
+    volumes:
+      - ./qt:/app
+      - ${XDG_RUNTIME_DIR}:${XDG_RUNTIME_DIR}
+      - /tmp/.X11-unix:/tmp/.X11-unix
     depends_on:
       - db
       - scraper
