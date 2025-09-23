@@ -128,26 +128,16 @@ void MainWindow::sidebarUi() {
 	QStringList competition_buttons;
 	for (const Competition& comp : db->getTable<Competition>())
 		competition_buttons.append(comp.name);
-	fillButtonsGroup(competition_buttons, [](QPushButton* comp_btn) {
-		comp_btn->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff; color: white;");
-		comp_btn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-		comp_btn->setCheckable(true);
-	}, championshipsLayout, championshipsGroup);
+	fillButtonsGroup(competition_buttons, championshipsLayout, championshipsGroup);
 
 	for (QAbstractButton* btn : championshipsGroup->buttons())
 		connect(btn, &QPushButton::clicked, this, [this, btn]() {
 			QStringList team_buttons;
 			for (const Team& team : db->getTable<Team>())
 				if (db->getName(team.competition_id) == btn->text()) team_buttons.append(team.name);
-
-			// CORRECTION : Supprimer le paramètre MainWindow* mw
-			fillButtonsGroup(team_buttons, [](QPushButton* team_btn) {  // Pas de MainWindow*
-				team_btn->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff; color: white;");
-				team_btn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-				team_btn->setCheckable(true);
-			}, teamsLayout, teamsGroup);
+			fillButtonsGroup(team_buttons, teamsLayout, teamsGroup);
 		});
-	championshipsGroup->buttons().first()->setChecked(true);
+	championshipsGroup->buttons().first()->click();
 }
 
 
@@ -164,8 +154,7 @@ QVBoxLayout* MainWindow::getScrollAreaLayout(QScrollArea *area) {
 }
 
 void MainWindow::fillButtonsGroup(
-	QStringList buttons, void (*btnCustomizer)(QPushButton*),
-	QBoxLayout* layout, QButtonGroup* group) {
+	QStringList buttons, QBoxLayout* layout, QButtonGroup* group) {
 	while (QLayoutItem* item = layout->takeAt(0)) {
 		if (QWidget* widget = item->widget()) {
 			group->removeButton(qobject_cast<QAbstractButton*>(widget));
@@ -176,7 +165,13 @@ void MainWindow::fillButtonsGroup(
 
 	for (const QString& buttonText : buttons) {
 		QPushButton* button = new QPushButton(buttonText, this);
-		btnCustomizer(button);
+		button->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff; color: white;");
+		button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+		QFontMetrics fm(button->font());
+		QString elidedText = fm.elidedText(button->text(), Qt::ElideRight, button->width() + 15);
+		button->setText(elidedText);
+		button->setCheckable(true);
+		button->setFixedHeight(40);
 		group->addButton(button);
 		layout->addWidget(button);
 	}

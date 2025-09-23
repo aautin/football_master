@@ -25,8 +25,7 @@ class MainWindow : public QMainWindow {
 
 		QVBoxLayout*	getScrollAreaLayout(QScrollArea* area);
 		void			fillButtonsGroup(
-			QStringList buttons, void (*btnCustomizer)(QPushButton*),
-			QBoxLayout* layout, QButtonGroup* group);
+			QStringList buttons, QBoxLayout* layout, QButtonGroup* group);
 
 		QGridLayout*	grid;
 		QWidget*		dataVisualizer;
