@@ -1,4 +1,3 @@
-// Config for IntelliSense in VSCode Dev Container
 {
   "configurations": [
     {
@@ -8,6 +7,7 @@
         "/usr/include/x86_64-linux-gnu/qt6/QtWidgets",
         "/usr/include/x86_64-linux-gnu/qt6/QtCore",
         "/usr/include/x86_64-linux-gnu/qt6/QtGui",
+        "/usr/include/x86_64-linux-gnu/qt6/QtSql",
         "${workspaceFolder}/**"
       ],
       "defines": [],

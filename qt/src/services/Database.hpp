@@ -4,6 +4,7 @@
 #include <QSqlDatabase>
 #include <QList>
 #include <QSqlQuery>
+#include <QDateTime>
 
 struct Competition {
 	int		id;
@@ -49,8 +50,9 @@ class Database {
 
 		template <typename T> QList<T>	getTable();
 		template <typename T> QList<T>	setTable();
+		void							updateDate() const;
+		QDateTime						getDate() const;
 		QString							getName(int id) const;
-
 
 	private:
 		QSqlDatabase	db;

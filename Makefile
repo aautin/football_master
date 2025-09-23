@@ -43,6 +43,12 @@ shell-qt:
 logs:
 	docker-compose logs -f
 
+save: up
+	docker-compose exec db pg_dump -U $${DB_USER:-football_user} -d $${DB_NAME:-football_db} --data-only --inserts > db/init/02-data.sql
+
+enter-db:
+	docker-compose exec db psql -U $${DB_USER:-football_user} -d $${DB_NAME:-football_db}
+
 clean:
 	@echo "🧹 Nettoyage..."
 	docker-compose down -v

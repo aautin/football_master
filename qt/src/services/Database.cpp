@@ -29,6 +29,21 @@ Database::~Database()
 
 
 // ---------- Public Methods ----------
+void Database::updateDate() const {
+	QDateTime currentDateTime = QDateTime::currentDateTime();
+	QSqlQuery query(db);
+	query.prepare("UPDATE app_settings SET last_update_date = :date");
+	query.bindValue(":date", currentDateTime);
+	query.exec();
+}
+
+QDateTime Database::getDate() const {
+	QSqlQuery query(db);
+	if (query.exec("SELECT last_update_date FROM app_settings") && query.next())
+		return query.value(0).toDateTime();
+	return QDateTime();
+}
+
 QString Database::getName(int id) const {
     for (const Competition& comp : competitions) {
         if (comp.id == id) return comp.name;

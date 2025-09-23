@@ -1,3 +1,8 @@
+-- App Settings
+CREATE TABLE IF NOT EXISTS app_settings (
+  last_update_date timestamptz NOT NULL
+);
+
 -- Competitions
 CREATE TABLE Competitions (
   id BIGINT PRIMARY KEY,

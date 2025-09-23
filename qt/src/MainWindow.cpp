@@ -53,6 +53,12 @@ void MainWindow::headerUi() {
 	titleBar->setAlignment(Qt::AlignCenter);
 	titleBar->setFont(QFont("Arial", 16, QFont::Bold));
 
+	QLabel* updateDate = new QLabel(this);
+	grid->addWidget(updateDate, 0, 8, 1, 3);
+	updateDate->setText("Last Update: \n" + db->getDate().toString("dd/MM/yyyy hh:mm"));
+	updateDate->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+	updateDate->setFont(QFont("Arial", 7, QFont::Normal));
+
 	QPushButton* btRefresh = new QPushButton(this);
 	btRefresh->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff");
 	grid->addWidget(btRefresh, 0, 11, 1, 1);
