@@ -1,12 +1,12 @@
 {
-  "name": "cpp-qt-devcontainer",
-  "build": {
-    "dockerfile": "../qt/Dockerfile"
-  },
-  "workspaceFolder": "/workspace",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  "name": "football-qt",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "qt",
+  "workspaceFolder": "/app",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached",
   "remoteUser": "root",
-  "runArgs": ["--init", "--env-file", "${localWorkspaceFolder}/.env"],
+  "overrideCommand": false,
+  "shutdownAction": "stopCompose",
   "customizations": {
     "vscode": {
       "settings": {

@@ -13,7 +13,7 @@ up:
 	@echo "🚀 Démarrage des services..."
 	@echo "📺 DISPLAY: $(DISPLAY)"
 	@echo "🗂️  XDG_RUNTIME_DIR: $(XDG_RUNTIME_DIR)"
-	docker-compose up -d
+	docker-compose up -d --no-recreate
 
 down:
 	@echo "🛑 Arrêt des services..."

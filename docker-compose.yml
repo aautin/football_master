@@ -32,7 +32,7 @@ services:
       - 8000
 
   qt:
-    user: "${UID}:${GID}"
+    # user: "${UID}:${GID}"
     build: ./qt
     container_name: football-qt
     environment:
@@ -49,6 +49,8 @@ services:
       - ./qt:/app
       - ${XDG_RUNTIME_DIR}:${XDG_RUNTIME_DIR}
       - /tmp/.X11-unix:/tmp/.X11-unix
+    devices:
+      - /dev/dri:/dev/dri
     depends_on:
       - db
       - scraper
