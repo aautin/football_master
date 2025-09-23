@@ -1,6 +1,6 @@
 .vscode/*
-*/.vscode/*
-!.vscode/c_cpp_properties.json
+qt/.vscode/*
+!qt/.vscode/c_cpp_properties.json
 
 # CMake build directories
 qt/build/
