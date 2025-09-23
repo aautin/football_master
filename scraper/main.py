@@ -50,8 +50,8 @@ def insert_teams(connection, teams):
         cursor = connection.cursor()
         for team in teams:
             cursor.execute(
-                "INSERT INTO Teams (id, name) VALUES (%s, %s) ON CONFLICT (id) DO NOTHING",
-                (team['id'], team['name'])
+                "INSERT INTO Teams (id, name, competition_id) VALUES (%s, %s, %s) ON CONFLICT (id) DO NOTHING",
+                (team['id'], team['name'], team['competition_id'])
             )
         connection.commit()
         cursor.close()
@@ -151,7 +151,7 @@ def getCompetitionsAttributes(competition_matches_entries):
 		})
 	return competitions
 
-def getTeamsAttributes(soups):
+def getTeamsAttributes(soups, competitions):
 	teams = []
 	save = []
 
@@ -173,6 +173,8 @@ def getTeamsAttributes(soups):
 
 			teams.append({"name" : name1, "id" : id1})
 			teams.append({"name" : name2, "id" : id2})
+	for i in range(len(teams)):
+		teams[i]["competition_id"] = competitions[i]["id"]
 	return teams
 
 def getMatchTeams(entry, teams):
@@ -359,7 +361,7 @@ def run_scraper():
 		# ---------------
 
 		competitions = getCompetitionsAttributes(competition_entries)
-		teams = getTeamsAttributes(competition_soups)
+		teams = getTeamsAttributes(competition_soups, competitions)
 		insert_competitions(db_connection, competitions)
 		insert_teams(db_connection, teams)
 

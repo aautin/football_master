@@ -13,11 +13,15 @@ up:
 	@echo "🚀 Démarrage des services..."
 	@echo "📺 DISPLAY: $(DISPLAY)"
 	@echo "🗂️  XDG_RUNTIME_DIR: $(XDG_RUNTIME_DIR)"
-	docker-compose up -d --no-recreate
+	docker-compose up -d --no-recreate --build
 
 down:
 	@echo "🛑 Arrêt des services..."
 	docker-compose down --timeout 2
+
+down-v:
+	@echo "🛑 Arrêt des services et suppression des volumes..."
+	docker-compose down -v --timeout 2
 
 build:
 	@echo "🔨 Construction des conteneurs..."

@@ -10,11 +10,12 @@
 #include <QScrollArea>
 #include <QWidget>
 
+class Database;
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
 	public:
-		explicit	MainWindow(QWidget* parent = nullptr);
+		explicit	MainWindow(char** envp, QWidget* parent = nullptr);
 
 	private:
 		void			windowUi();
@@ -35,4 +36,6 @@ class MainWindow : public QMainWindow {
 
 		QVBoxLayout*	teamsLayout;
 		QButtonGroup*	teamsGroup;
+
+		Database*		db;
 };

@@ -12,9 +12,18 @@
 #include <QWindow>
 
 #include "MainWindow.hpp"
+#include "Database.hpp"
 
-MainWindow::MainWindow(QWidget* parent)
+MainWindow::MainWindow(char** envp, QWidget* parent)
     : QMainWindow(parent) {
+	db = new Database(
+		QString::fromStdString(std::getenv("DB_HOST")),
+		QString::fromStdString(std::getenv("DB_USER")),
+		QString::fromStdString(std::getenv("DB_PASSWORD")),
+		QString::fromStdString(std::getenv("DB_NAME")),
+		5432
+	);
+
 	windowUi();
 	centralUi();
 	headerUi();
@@ -50,6 +59,7 @@ void MainWindow::headerUi() {
 	btRefresh->setIcon(QIcon(":/assets/refresh.png"));
 	btRefresh->setIconSize(btRefresh->size() * 0.9);
 	btRefresh->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	connect(btRefresh, &QPushButton::clicked, this, [this]() {});
 
 	QPushButton* btMinimize = new QPushButton(this);
 	btMinimize->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff");
@@ -96,6 +106,7 @@ void MainWindow::sidebarUi() {
 	championshipsArea->setStyleSheet("[variant=area] { background: #6b7888; border: 2px solid #e8e8e8ff; }");
 	championshipsArea->setWidgetResizable(true);
 	championshipsArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	championshipsArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	grid->addWidget(championshipsArea, 1, 11, 6, 3);
 	championshipsLayout = getScrollAreaLayout(championshipsArea);
 	championshipsLayout->setAlignment(Qt::AlignTop);
@@ -107,13 +118,37 @@ void MainWindow::sidebarUi() {
 	teamsArea->setStyleSheet("[variant=area] { background: #6b7888; border: 2px solid #e8e8e8ff; }");
 	teamsArea->setWidgetResizable(true);
 	teamsArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	teamsArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	grid->addWidget(teamsArea, 7, 11, 6, 3);
 	teamsLayout = getScrollAreaLayout(teamsArea);
 	teamsLayout->setAlignment(Qt::AlignTop);
 	teamsGroup = new QButtonGroup();
 	teamsGroup->setExclusive(false);
-}
 
+	QStringList competition_buttons;
+	for (const Competition& comp : db->getTable<Competition>())
+		competition_buttons.append(comp.name);
+	fillButtonsGroup(competition_buttons, [](QPushButton* comp_btn) {
+		comp_btn->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff; color: white;");
+		comp_btn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+		comp_btn->setCheckable(true);
+	}, championshipsLayout, championshipsGroup);
+
+	for (QAbstractButton* btn : championshipsGroup->buttons())
+		connect(btn, &QPushButton::clicked, this, [this, btn]() {
+			QStringList team_buttons;
+			for (const Team& team : db->getTable<Team>())
+				if (db->getName(team.competition_id) == btn->text()) team_buttons.append(team.name);
+
+			// CORRECTION : Supprimer le paramètre MainWindow* mw
+			fillButtonsGroup(team_buttons, [](QPushButton* team_btn) {  // Pas de MainWindow*
+				team_btn->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff; color: white;");
+				team_btn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+				team_btn->setCheckable(true);
+			}, teamsLayout, teamsGroup);
+		});
+	championshipsGroup->buttons().first()->setChecked(true);
+}
 
 
 // ---------- Utils ----------
@@ -131,6 +166,13 @@ QVBoxLayout* MainWindow::getScrollAreaLayout(QScrollArea *area) {
 void MainWindow::fillButtonsGroup(
 	QStringList buttons, void (*btnCustomizer)(QPushButton*),
 	QBoxLayout* layout, QButtonGroup* group) {
+	while (QLayoutItem* item = layout->takeAt(0)) {
+		if (QWidget* widget = item->widget()) {
+			group->removeButton(qobject_cast<QAbstractButton*>(widget));
+			widget->deleteLater();
+		}
+		delete item;
+	}
 
 	for (const QString& buttonText : buttons) {
 		QPushButton* button = new QPushButton(buttonText, this);

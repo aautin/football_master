@@ -7,7 +7,9 @@ CREATE TABLE Competitions (
 -- Teams
 CREATE TABLE Teams (
   id BIGINT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL
+  name VARCHAR(100) NOT NULL,
+  competition_id BIGINT NOT NULL,
+  FOREIGN KEY (competition_id) REFERENCES Competitions(id)
 );
 
 -- Matches (always team1 and team2)

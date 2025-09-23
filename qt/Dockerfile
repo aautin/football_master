@@ -4,6 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
     build-essential \
+    libqt6sql6-psql \
     cmake \
     qt6-base-dev \
     qt6-tools-dev \
