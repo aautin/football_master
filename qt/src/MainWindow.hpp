@@ -9,8 +9,10 @@
 #include <QStringList>
 #include <QScrollArea>
 #include <QWidget>
+#include <QLabel>
 
 class Database;
+class Scrapper;
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
@@ -30,6 +32,8 @@ class MainWindow : public QMainWindow {
 		QGridLayout*	grid;
 		QWidget*		dataVisualizer;
 
+		QLabel*			updateDate;
+
 		QVBoxLayout*	championshipsLayout;
 		QButtonGroup*	championshipsGroup;
 
@@ -37,4 +41,7 @@ class MainWindow : public QMainWindow {
 		QButtonGroup*	teamsGroup;
 
 		Database*		db;
+		Scrapper*		scrapper;
+
+		bool canRequest = true;
 };

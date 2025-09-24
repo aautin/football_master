@@ -75,6 +75,7 @@ def insert_matches(connection, matches):
 	try:
 		cursor = connection.cursor()
 		for match in matches:
+			print(f"Inserting/Updating match ID {match['id']}")
 			cursor.execute("""
 				INSERT INTO Matches (
 					id, competition_id, team1_id, team2_id,
@@ -155,7 +156,7 @@ def getTeamsAttributes(soups, competitions):
 	teams = []
 	save = []
 
-	for soup in soups:
+	for i, soup in enumerate(soups):
 		teams_1 = soup.select('td[data-stat="home_team"] a[href]')
 		teams_2 = soup.select('td[data-stat="away_team"] a[href]')
 	
@@ -171,10 +172,8 @@ def getTeamsAttributes(soups, competitions):
 			id1 = int(team1['href'].split("/")[3], 16)
 			id2 = int(team2['href'].split("/")[3], 16)
 
-			teams.append({"name" : name1, "id" : id1})
-			teams.append({"name" : name2, "id" : id2})
-	for i in range(len(teams)):
-		teams[i]["competition_id"] = competitions[i]["id"]
+			teams.append({"name" : name1, "id" : id1, "competition_id": competitions[i]["id"]})
+			teams.append({"name" : name2, "id" : id2, "competition_id": competitions[i]["id"]})
 	return teams
 
 def getMatchTeams(entry, teams):
@@ -352,9 +351,9 @@ def run_scraper():
 
 		# Competitions : entries + soups
 		competition_entries = [
-			# "/en/comps/11/schedule/Serie-A-Scores-and-Fixtures",
-			# "/en/comps/9/schedule/Premier-League-Scores-and-Fixtures",
-			# "/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures",
+			"/en/comps/11/schedule/Serie-A-Scores-and-Fixtures",
+			"/en/comps/9/schedule/Premier-League-Scores-and-Fixtures",
+			"/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures",
 			"/en/comps/20/schedule/Bundesliga-Scores-and-Fixtures"
 		]
 		competition_soups = [BeautifulSoup(fetch_url(base_url + entry, session), "html.parser") for entry in competition_entries]
@@ -368,11 +367,13 @@ def run_scraper():
 		matches = getMatchesBasicAttributes(competition_soups, competitions, teams)
 		matches = getOnlyNewMatches(matches, db_connection)
 
+		print(f"Total matches found: {len(matches)}", flush=True)
 		# Matches : entries + soups
 		match_entries = [match["url"] for match in matches]
 		match_soups = [BeautifulSoup(fetch_url(base_url + entry, session), "html.parser") for entry in match_entries]
 		# ---------------
 
+		print(f"Found {len(matches)} new matches to process", flush=True)
 		matches = getMatchesAttributes(match_soups, matches)
 		insert_matches(db_connection, matches)
 

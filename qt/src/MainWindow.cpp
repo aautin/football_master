@@ -3,19 +3,24 @@
 #include <QApplication>
 #include <QScreen>
 #include <QShortcut>
-#include <QLabel>
 #include <QPushButton>
 #include <QButtonGroup>
 #include <QScrollArea>
+#include <QMessageBox>
 
 #include <QDebug>
 #include <QWindow>
 
 #include "MainWindow.hpp"
 #include "Database.hpp"
+#include "Scrapper.hpp"
+
+#include <iostream>
 
 MainWindow::MainWindow(char** envp, QWidget* parent)
     : QMainWindow(parent) {
+	scrapper = new Scrapper(
+		QUrl(QString("http://") + std::getenv("SCRAPER_HOST") + QString(":8000")));
 	db = new Database(
 		QString::fromStdString(std::getenv("DB_HOST")),
 		QString::fromStdString(std::getenv("DB_USER")),
@@ -53,7 +58,7 @@ void MainWindow::headerUi() {
 	titleBar->setAlignment(Qt::AlignCenter);
 	titleBar->setFont(QFont("Arial", 16, QFont::Bold));
 
-	QLabel* updateDate = new QLabel(this);
+	updateDate = new QLabel(this);
 	grid->addWidget(updateDate, 0, 8, 1, 3);
 	updateDate->setText("Last Update: \n" + db->getDate().toString("dd/MM/yyyy hh:mm"));
 	updateDate->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
@@ -65,7 +70,6 @@ void MainWindow::headerUi() {
 	btRefresh->setIcon(QIcon(":/assets/refresh.png"));
 	btRefresh->setIconSize(btRefresh->size() * 0.9);
 	btRefresh->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-	connect(btRefresh, &QPushButton::clicked, this, [this]() {});
 
 	QPushButton* btMinimize = new QPushButton(this);
 	btMinimize->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff");
@@ -82,6 +86,25 @@ void MainWindow::headerUi() {
 	btClose->setIconSize(btClose->size() * 1);
 	btClose->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	connect(btClose, &QPushButton::clicked, this, [this]() { this->close(); });
+
+	connect(scrapper, &Scrapper::scrappingFinished, this, [this, btRefresh]() {
+		canRequest = true;
+    	btRefresh->setEnabled(true);
+   		QMessageBox::information(this, "Scrapping Finished", "The scrapper has finished updating the data.");
+	});
+
+	connect(btRefresh, &QPushButton::clicked, this, [this, btRefresh]() {
+		if (!canRequest) {
+			QMessageBox::information(this, "Please Wait", "The scrapper is currently running. Please wait until it finishes.");
+			return;
+		}
+
+		canRequest = false;
+		btRefresh->setEnabled(false);
+		scrapper->run();
+		db->updateDate();
+		updateDate->setText("Last Update: \n" + db->getDate().toString("dd/MM/yyyy hh:mm"));
+	});
 }
 
 void MainWindow::centralUi() {
