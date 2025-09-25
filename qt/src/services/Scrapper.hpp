@@ -7,15 +7,14 @@
 class Scrapper : public QObject {
 	Q_OBJECT
 
-	public:
-		explicit Scrapper(QUrl baseUrl, QObject* parent = nullptr);
-		~Scrapper();
+	public slots:
+		void	initialize(QUrl baseUrl);
+		void	run();
 
-		void run();
-		bool isRunning() const;
-	
 	signals:
-		void scrappingFinished();
+		void	scrappingFinished();
+		void	running();
+		void	ran();
 
 	private:
 		QNetworkAccessManager*	networkManager;
