@@ -3,6 +3,7 @@
 #include <QString>
 #include <QSqlDatabase>
 #include <QList>
+#include <QQueue>
 #include <QDateTime>
 
 struct Competition {
@@ -49,15 +50,15 @@ class Database : public QObject {
 		void	initialize(QString host, QString user, QString password, QString dbname, int port);
 		void	update();
 		void	fetch();
-		void	destroy();
 		void	fetchName(int id);
+		void	destroy();
 
 	signals:
 		void	initialized();
 		void	updated();
 		void	fetched(const QList<Competition>&, const QList<Team>&, const QList<Match>&, const QDateTime&);
-		void	destroy();
 		void	nameFetched(const QString&);
+		void	destroy();
 
 	private:
 		QSqlDatabase		db;
@@ -66,4 +67,7 @@ class Database : public QObject {
 		QList<Team>			teams;
 		QList<Match>		matches;
 		QDateTime			lastUpdate;
+
+		bool							isInitialized = false;
+		QQueue<std::function<void()>>	pendingSlots;
 };

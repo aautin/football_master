@@ -4,19 +4,29 @@
 
 // ---------- Public slots ----------
 void Database::initialize(QString host, QString user, QString password, QString dbname, int port) {
-	db = QSqlDatabase::addDatabase("QMYSQL");
+	if (isInitialized) return;
+
+	db = QSqlDatabase::addDatabase("QMYSQL", "Database");
 	db.setHostName(host);
 	db.setUserName(user);
 	db.setPassword(password);
-	db.setDatabaseName(dbname);
 	db.setPort(port);
-
+	
+	isInitialized = true;
 	update();
+
+	for (const auto& slot : pendingSlots) slot();
+	pendingSlots.clear();
 
 	emit initialized();
 }
 
 void Database::update() {
+	if (!isInitialized) {
+		pendingSlots.enqueue([this]() { update(); });
+		return;
+	}
+
 	QSqlQuery query(db);
 	if (query.exec("SELECT id, name FROM competitions")) {
 		competitions.clear();
@@ -73,28 +83,49 @@ void Database::update() {
 }
 
 void Database::fetch() {
+	if (!isInitialized) {
+		pendingSlots.enqueue([this]() { fetch(); });
+		return;
+	}
+
 	emit fetched(competitions, teams, matches, lastUpdate);
 }
 
-void Database::destroy() {
-	db.close();
-	QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
-
-	emit destroyed();
-}
-
 void Database::fetchName(int id) {
+	if (!isInitialized) {
+		pendingSlots.enqueue([this, id]() { fetchName(id); });
+		return;
+	}
+	
 	for (const Competition& comp : competitions) {
 		if (comp.id == id) {
 			emit nameFetched(comp.name);
 			return;
 		}
 	}
-
+	
 	for (const Team& team : teams) {
 		if (team.id == id) {
 			emit nameFetched(team.name);
 			return;
 		}
 	}
+}
+
+void Database::destroy() {
+	if (!isInitialized) {
+		pendingSlots.enqueue([this]() { destroy(); });
+		return;
+	}
+	
+	isInitialized = false;
+
+	competitions.clear();
+	teams.clear();
+	matches.clear();
+	pendingSlots.clear();
+	db.close();
+	QSqlDatabase::removeDatabase(db.connectionName());
+
+	emit destroyed();
 }

@@ -1,38 +1,61 @@
-#include <QVBoxLayout>
 #include <QGuiApplication>
 #include <QApplication>
 #include <QScreen>
 #include <QShortcut>
-#include <QPushButton>
-#include <QButtonGroup>
-#include <QScrollArea>
 #include <QMessageBox>
-
-#include <QDebug>
 #include <QWindow>
 
 #include "MainWindow.hpp"
 #include "Database.hpp"
-#include "Scrapper.hpp"
+#include "Scraper.hpp"
 
-#include <iostream>
-
+// ---------- Constructor Destructor ----------
 MainWindow::MainWindow(char** envp, QWidget* parent)
     : QMainWindow(parent) {
-	scrapper = new Scrapper(
-		QUrl(QString("http://") + std::getenv("SCRAPER_HOST") + QString(":8000")));
-	db = new Database(
-		QString::fromStdString(std::getenv("DB_HOST")),
-		QString::fromStdString(std::getenv("DB_USER")),
-		QString::fromStdString(std::getenv("DB_PASSWORD")),
-		QString::fromStdString(std::getenv("DB_NAME")),
-		5432
-	);
 
+	// UI Setup
 	windowUi();
 	centralUi();
 	headerUi();
 	sidebarUi();
+
+
+	// Services Setup
+	database = new Database();
+	scraper = new Scraper();
+
+	database->moveToThread(databaseThread = new QThread(this));
+	scraper->moveToThread(scraperThread = new QThread(this));
+
+	wireDatabaseSignals();
+	wireScraperSignals();
+	wireOtherSignals();
+
+	connect(databaseThread, &QThread::started, database, [this]() {
+	    database->initialize(QString::fromStdString(std::getenv("DB_HOST")),
+			QString::fromStdString(std::getenv("DB_USER")),
+			QString::fromStdString(std::getenv("DB_PASSWORD")),
+			QString::fromStdString(std::getenv("DB_NAME")),
+			5432
+		);
+	});
+	connect(scraperThread, &QThread::started, scraper, [this]() {
+	    scraper->initialize(QString("http://%1:8000").arg(QString::fromStdString(std::getenv("SCRAPER_HOST"))));
+	});
+	databaseThread->start();
+	scraperThread->start();
+}
+
+MainWindow::~MainWindow() {
+	databaseThread->quit();
+	databaseThread->wait();
+	delete databaseThread;
+	delete database;
+
+	scraperThread->quit();
+	scraperThread->wait();
+	delete scraperThread;
+	delete scraper;
 }
 
 
@@ -64,47 +87,26 @@ void MainWindow::headerUi() {
 	updateDate->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 	updateDate->setFont(QFont("Arial", 7, QFont::Normal));
 
-	QPushButton* btRefresh = new QPushButton(this);
+	btRefresh = new QPushButton(this);
 	btRefresh->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff");
 	grid->addWidget(btRefresh, 0, 11, 1, 1);
 	btRefresh->setIcon(QIcon(":/assets/refresh.png"));
 	btRefresh->setIconSize(btRefresh->size() * 0.9);
 	btRefresh->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
-	QPushButton* btMinimize = new QPushButton(this);
+	btMinimize = new QPushButton(this);
 	btMinimize->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff");
 	grid->addWidget(btMinimize, 0, 12, 1, 1);
 	btMinimize->setIcon(QIcon(":/assets/minimize.png"));
 	btMinimize->setIconSize(btMinimize->size() * 0.9);
 	btMinimize->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-	connect(btMinimize, &QPushButton::clicked, this, [this]() { this->showMinimized(); });
 
-	QPushButton* btClose = new QPushButton(this);
+	btClose = new QPushButton(this);
 	btClose->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff");
 	grid->addWidget(btClose, 0, 13, 1, 1);
 	btClose->setIcon(QIcon(":/assets/close.png"));
 	btClose->setIconSize(btClose->size() * 1);
 	btClose->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-	connect(btClose, &QPushButton::clicked, this, [this]() { this->close(); });
-
-	connect(scrapper, &Scrapper::scrappingFinished, this, [this, btRefresh]() {
-		canRequest = true;
-    	btRefresh->setEnabled(true);
-   		QMessageBox::information(this, "Scrapping Finished", "The scrapper has finished updating the data.");
-	});
-
-	connect(btRefresh, &QPushButton::clicked, this, [this, btRefresh]() {
-		if (!canRequest) {
-			QMessageBox::information(this, "Please Wait", "The scrapper is currently running. Please wait until it finishes.");
-			return;
-		}
-
-		canRequest = false;
-		btRefresh->setEnabled(false);
-		scrapper->run();
-		db->updateDate();
-		updateDate->setText("Last Update: \n" + db->getDate().toString("dd/MM/yyyy hh:mm"));
-	});
 }
 
 void MainWindow::centralUi() {
@@ -170,38 +172,120 @@ void MainWindow::sidebarUi() {
 }
 
 
+
+
+// ---------- Signals ----------
+void MainWindow::wireServicesSignals() {
+	// Database
+	connect(database, &Database::initialized, this, [this]() {
+		connect(championshipsGroup, &QButtonGroup::buttonClicked, this, [this](QAbstractButton* button) {
+		    removeButtons(teamsLayout, teamsGroup);
+
+			// Add the new teams buttons corresponding to the clicked competition
+		});
+
+		QMessageBox msgBox;
+		msgBox.setText("Database is initialized.");
+		msgBox.exec();
+	});
+	connect(database, &Database::destroyed, this, [this]() {
+
+		QMessageBox msgBox;
+		msgBox.setText("Database is destroyed.");
+		msgBox.exec();
+	});
+
+
+	// Scraper
+	connect(scraper, &Scraper::initialized, this, [this]() {
+		btRefresh->setEnabled(true);
+		connect(btRefresh, &QPushButton::clicked, scraper, &Scraper::run);		
+
+		QMessageBox msgBox;
+		msgBox.setText("Scraper is initialized.");
+		msgBox.exec();
+	});
+	connect(scraper, &Scraper::running, this, [this]() {
+		btRefresh->setEnabled(false);
+
+		QMessageBox msgBox;
+		msgBox.setText("Scraping is running.");
+		msgBox.exec();
+	});
+	connect(scraper, &Scraper::ran, this, [this]() {
+    	btRefresh->setEnabled(true);
+		QMetaObject::invokeMethod(database, "update", Qt::QueuedConnection);
+
+		QMessageBox msgBox;
+		msgBox.setText("Scraping is ran.");
+		msgBox.exec();
+	});
+	connect(scraper, &Scraper::destroyed, this, [this]() {
+		btRefresh->setEnabled(false);
+
+		QMessageBox msgBox;
+		msgBox.setText("Scraping is destroyed.");
+		msgBox.exec();
+	});
+}
+
+void MainWindow::wireOtherSignals() {
+	connect(btMinimize, &QPushButton::clicked, this, [this]() {this->showMinimized();});
+	connect(btClose, &QPushButton::clicked, this, [this]() {this->close();});
+}
+
+
+
+
+
+
+
+
+
+
 // ---------- Utils ----------
-QVBoxLayout* MainWindow::getScrollAreaLayout(QScrollArea *area) {
-	QWidget* container = new QWidget();
-	area->setWidget(container);
-	container->setStyleSheet("background: #6b7888;");
+void	MainWindow::removeButtons(QBoxLayout* layout, QButtonGroup* group) {
+	while (!group->buttons().isEmpty()) {
+		QAbstractButton* btn = group->buttons().first();
+		group->removeButton(btn);
 
-	QVBoxLayout* layout = new QVBoxLayout();
-	container->setLayout(layout);
-
-	return layout;
-}
-
-void MainWindow::fillButtonsGroup(
-	QStringList buttons, QBoxLayout* layout, QButtonGroup* group) {
-	while (QLayoutItem* item = layout->takeAt(0)) {
-		if (QWidget* widget = item->widget()) {
-			group->removeButton(qobject_cast<QAbstractButton*>(widget));
-			widget->deleteLater();
-		}
-		delete item;
-	}
-
-	for (const QString& buttonText : buttons) {
-		QPushButton* button = new QPushButton(buttonText, this);
-		button->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff; color: white;");
-		button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-		QFontMetrics fm(button->font());
-		QString elidedText = fm.elidedText(button->text(), Qt::ElideRight, button->width() + 15);
-		button->setText(elidedText);
-		button->setCheckable(true);
-		button->setFixedHeight(40);
-		group->addButton(button);
-		layout->addWidget(button);
+		QWidget* widget = layout->itemAt(0)->widget();
+		layout->removeWidget(widget);
+		widget->deleteLater();
 	}
 }
+
+// QVBoxLayout* MainWindow::getScrollAreaLayout(QScrollArea *area) {
+// 	QWidget* container = new QWidget();
+// 	area->setWidget(container);
+// 	container->setStyleSheet("background: #6b7888;");
+
+// 	QVBoxLayout* layout = new QVBoxLayout();
+// 	container->setLayout(layout);
+
+// 	return layout;
+// }
+
+// void MainWindow::fillButtonsGroup(
+// 	QStringList buttons, QBoxLayout* layout, QButtonGroup* group) {
+// 	while (QLayoutItem* item = layout->takeAt(0)) {
+// 		if (QWidget* widget = item->widget()) {
+// 			group->removeButton(qobject_cast<QAbstractButton*>(widget));
+// 			widget->deleteLater();
+// 		}
+// 		delete item;
+// 	}
+
+// 	for (const QString& buttonText : buttons) {
+// 		QPushButton* button = new QPushButton(buttonText, this);
+// 		button->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff; color: white;");
+// 		button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+// 		QFontMetrics fm(button->font());
+// 		QString elidedText = fm.elidedText(button->text(), Qt::ElideRight, button->width() + 15);
+// 		button->setText(elidedText);
+// 		button->setCheckable(true);
+// 		button->setFixedHeight(40);
+// 		group->addButton(button);
+// 		layout->addWidget(button);
+// 	}
+// }

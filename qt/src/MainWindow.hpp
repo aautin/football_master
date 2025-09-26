@@ -10,29 +10,39 @@
 #include <QScrollArea>
 #include <QWidget>
 #include <QLabel>
+#include <QThread>
 
 class Database;
-class Scrapper;
+class Scraper;
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
 	public:
 		explicit	MainWindow(char** envp, QWidget* parent = nullptr);
+		~MainWindow() override;
 
 	private:
+		// UI Setup
 		void			windowUi();
 		void			headerUi();
 		void			centralUi();
 		void			sidebarUi();
 
-		QVBoxLayout*	getScrollAreaLayout(QScrollArea* area);
-		void			fillButtonsGroup(
-			QStringList buttons, QBoxLayout* layout, QButtonGroup* group);
+		// Wire signals
+		void			wireServicesSignals();
+		void			wireOtherSignals();
+
+		// Utils
+		void			removeButtons(QBoxLayout* layout, QButtonGroup* group);
+
+		// UI Elements
+		QLabel*			updateDate;
+		QPushButton*	btRefresh;
+		QPushButton*	btMinimize;
+		QPushButton*	btClose;
 
 		QGridLayout*	grid;
 		QWidget*		dataVisualizer;
-
-		QLabel*			updateDate;
 
 		QVBoxLayout*	championshipsLayout;
 		QButtonGroup*	championshipsGroup;
@@ -40,8 +50,9 @@ class MainWindow : public QMainWindow {
 		QVBoxLayout*	teamsLayout;
 		QButtonGroup*	teamsGroup;
 
-		Database*		db;
-		Scrapper*		scrapper;
-
-		bool canRequest = true;
+		// Services
+		Database*		database;
+		QThread*		databaseThread;
+		Scraper*		scraper;
+		QThread*		scraperThread;
 };
