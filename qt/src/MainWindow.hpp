@@ -12,10 +12,12 @@
 #include <QLabel>
 #include <QThread>
 
+#include "Data.hpp"
+
 class Database;
 class Scraper;
 class MainWindow : public QMainWindow {
-    Q_OBJECT
+	Q_OBJECT
 
 	public:
 		explicit	MainWindow(char** envp, QWidget* parent = nullptr);
@@ -23,17 +25,21 @@ class MainWindow : public QMainWindow {
 
 	private:
 		// UI Setup
-		void			windowUi();
-		void			headerUi();
-		void			centralUi();
-		void			sidebarUi();
+		void	windowUi();
+		void	headerUi();
+		void	centralUi();
+		void	sidebarUi();
 
 		// Wire signals
-		void			wireServicesSignals();
-		void			wireOtherSignals();
+		void	wireServicesSignals();
+		void	wireOtherSignals();
 
 		// Utils
+		void			fillButtonsGroup(QBoxLayout* layout, QButtonGroup* group, const QStringList& buttons);
 		void			removeButtons(QBoxLayout* layout, QButtonGroup* group);
+		QVBoxLayout*	getScrollAreaLayout(QScrollArea* area);
+		QStringList		extractNames(const QList<Competition>& items);
+		QStringList		extractNames(const QList<Team>& items);
 
 		// UI Elements
 		QLabel*			updateDate;
@@ -44,8 +50,8 @@ class MainWindow : public QMainWindow {
 		QGridLayout*	grid;
 		QWidget*		dataVisualizer;
 
-		QVBoxLayout*	championshipsLayout;
-		QButtonGroup*	championshipsGroup;
+		QVBoxLayout*	competitionsLayout;
+		QButtonGroup*	competitionsGroup;
 
 		QVBoxLayout*	teamsLayout;
 		QButtonGroup*	teamsGroup;

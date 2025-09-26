@@ -34,8 +34,8 @@ build-qt:
 
 run-qt:
 	@echo "🖥️ Lancement de l'application Qt..."
-	@xhost +local:docker 2>/dev/null || echo "⚠️ xhost non disponible"
-	docker-compose exec qt /app/build/$(EXECUTABLE)
+	@xhost +local:docker 2>/dev/null || echo "⚠️ xhost non disponible"i
+	@docker-compose exec qt /app/build/$(EXECUTABLE) > last_run.log 2>&1
 
 shell-qt:
 	docker-compose exec qt bash

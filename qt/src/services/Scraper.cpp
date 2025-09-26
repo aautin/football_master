@@ -25,6 +25,10 @@ void Scraper::initialize(QString url) {
 					emit ran();
 					statusTimer->stop();
 				}
+				else {
+					emit running();
+					statusTimer->start(3000);
+				}
 			}
 			statusReply->deleteLater();
 		});

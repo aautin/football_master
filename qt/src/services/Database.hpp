@@ -6,42 +6,7 @@
 #include <QQueue>
 #include <QDateTime>
 
-struct Competition {
-	int		id;
-	QString	name;
-};
-
-struct Team {
-	int		id;
-	int		competition_id;
-	QString	name;
-};
-
-struct Match {
-	int	id;
-	int	competition_id;
-
-	int	team1_id;
-	int	team2_id;
-
-	int	score1;
-	int	score2;
-
-	int	possession1;
-	int	possession2;
-
-	int	passes1;
-	int	passes2;
-
-	int	successful_passes1;
-	int	successful_passes2;
-
-	int	shots1;
-	int	shots2;
-
-	int	shots_on_target1;
-	int	shots_on_target2;
-};
+#include "Data.hpp"
 
 class Database : public QObject {
 	Q_OBJECT
@@ -49,18 +14,27 @@ class Database : public QObject {
 	public slots:
 		void	initialize(QString host, QString user, QString password, QString dbname, int port);
 		void	update();
-		void	fetch();
-		void	fetchName(int id);
+
+		void	fetchCompetitions();
+		void	fetchTeams(const QString &competition_name = "None");
+		// void	fetchMatches(const QString &competition_name = "None", const QString &team1_name = "None", const QString &team2_name = "None");
+
 		void	destroy();
 
 	signals:
 		void	initialized();
 		void	updated();
-		void	fetched(const QList<Competition>&, const QList<Team>&, const QList<Match>&, const QDateTime&);
-		void	nameFetched(const QString&);
-		void	destroy();
+
+		void	competitionsFetched(const QList<Competition>&);
+		void	teamsFetched(const QList<Team>&);
+		// void	matchesFetched(const QList<Match>&);
+
+		void	destroyed();
 
 	private:
+		int		toId(const QString &name);
+		QString	toName(const int id);
+
 		QSqlDatabase		db;
 
 		QList<Competition>	competitions;

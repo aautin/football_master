@@ -6,11 +6,13 @@
 void Database::initialize(QString host, QString user, QString password, QString dbname, int port) {
 	if (isInitialized) return;
 
-	db = QSqlDatabase::addDatabase("QMYSQL", "Database");
+	db = QSqlDatabase::addDatabase("QPSQL", "Database");
 	db.setHostName(host);
 	db.setUserName(user);
 	db.setPassword(password);
 	db.setPort(port);
+	db.setDatabaseName(dbname);
+	db.open();
 	
 	isInitialized = true;
 	update();
@@ -82,35 +84,50 @@ void Database::update() {
 	emit updated();
 }
 
-void Database::fetch() {
+void Database::fetchCompetitions() {
 	if (!isInitialized) {
-		pendingSlots.enqueue([this]() { fetch(); });
+		pendingSlots.enqueue([this]() { fetchCompetitions(); });
 		return;
 	}
 
-	emit fetched(competitions, teams, matches, lastUpdate);
+	emit competitionsFetched(competitions);
 }
 
-void Database::fetchName(int id) {
+void Database::fetchTeams(const QString &competition_name) {
 	if (!isInitialized) {
-		pendingSlots.enqueue([this, id]() { fetchName(id); });
+		pendingSlots.enqueue([this, competition_name]() { fetchTeams(competition_name); });
 		return;
 	}
-	
-	for (const Competition& comp : competitions) {
-		if (comp.id == id) {
-			emit nameFetched(comp.name);
-			return;
-		}
+
+	if (competition_name == "None") {
+		emit teamsFetched(teams);
+		return;
 	}
-	
+
+	QList<Team> filteredTeams;
 	for (const Team& team : teams) {
-		if (team.id == id) {
-			emit nameFetched(team.name);
-			return;
+		if (toName(team.competition_id) == competition_name) {
+			filteredTeams.append(team);
 		}
 	}
+	emit teamsFetched(filteredTeams);
 }
+
+// void Database::fetchMatches(const QString &competition_name, const QString &team1_name, const QString &team2_name) {
+// 	if (!isInitialized) {
+// 		pendingSlots.enqueue([this, competition_name, team1_name, team2_name]() { fetchMatches(competition_name, team1_name, team2_name); });
+// 		return;
+// 	}
+
+// 	QList<Match> filteredMatches;
+// 	for (const Match& match : matches) {
+// 		if ((competition_name == "None" || toName(match.competition_id) == competition_name)
+// 			&& (team1_name == "None" || toName(match.team1_id) == team1_name)
+// 			&& (team2_name == "None" || toName(match.team2_id) == team2_name))
+// 			filteredMatches.append(match);
+// 	}
+// 	emit matchesFetched(filteredMatches);
+// }
 
 void Database::destroy() {
 	if (!isInitialized) {
@@ -128,4 +145,26 @@ void Database::destroy() {
 	QSqlDatabase::removeDatabase(db.connectionName());
 
 	emit destroyed();
+}
+
+
+// ---------- Private methods ----------
+int Database::toId(const QString &name) {
+	for (const Competition& comp : competitions)
+		if (comp.name == name) return comp.id;
+
+	for (const Team& team : teams)
+		if (team.name == name) return team.id;
+
+	return -1;
+}
+
+QString Database::toName(const int id) {
+	for (const Competition& comp : competitions)
+		if (comp.id == id) return comp.name;
+
+	for (const Team& team : teams)
+		if (team.id == id) return team.name;
+
+	return QString();
 }

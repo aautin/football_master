@@ -27,8 +27,7 @@ MainWindow::MainWindow(char** envp, QWidget* parent)
 	database->moveToThread(databaseThread = new QThread(this));
 	scraper->moveToThread(scraperThread = new QThread(this));
 
-	wireDatabaseSignals();
-	wireScraperSignals();
+	wireServicesSignals();
 	wireOtherSignals();
 
 	connect(databaseThread, &QThread::started, database, [this]() {
@@ -83,7 +82,7 @@ void MainWindow::headerUi() {
 
 	updateDate = new QLabel(this);
 	grid->addWidget(updateDate, 0, 8, 1, 3);
-	updateDate->setText("Last Update: \n" + db->getDate().toString("dd/MM/yyyy hh:mm"));
+	// updateDate->setText("Last Update: \n" + db->getDate().toString("dd/MM/yyyy hh:mm"));
 	updateDate->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 	updateDate->setFont(QFont("Arial", 7, QFont::Normal));
 
@@ -132,17 +131,17 @@ void MainWindow::centralUi() {
 }
 
 void MainWindow::sidebarUi() {
-	QScrollArea* championshipsArea = new QScrollArea();
-	championshipsArea->setProperty("variant", "area");
-	championshipsArea->setStyleSheet("[variant=area] { background: #6b7888; border: 2px solid #e8e8e8ff; }");
-	championshipsArea->setWidgetResizable(true);
-	championshipsArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	championshipsArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	grid->addWidget(championshipsArea, 1, 11, 6, 3);
-	championshipsLayout = getScrollAreaLayout(championshipsArea);
-	championshipsLayout->setAlignment(Qt::AlignTop);
-	championshipsGroup = new QButtonGroup();
-	championshipsGroup->setExclusive(true);
+	QScrollArea* competitionsArea = new QScrollArea();
+	competitionsArea->setProperty("variant", "area");
+	competitionsArea->setStyleSheet("[variant=area] { background: #6b7888; border: 2px solid #e8e8e8ff; }");
+	competitionsArea->setWidgetResizable(true);
+	competitionsArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	competitionsArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	grid->addWidget(competitionsArea, 1, 11, 6, 3);
+	competitionsLayout = getScrollAreaLayout(competitionsArea);
+	competitionsLayout->setAlignment(Qt::AlignTop);
+	competitionsGroup = new QButtonGroup();
+	competitionsGroup->setExclusive(true);
 
 	QScrollArea* teamsArea = new QScrollArea();
 	teamsArea->setProperty("variant", "area");
@@ -155,51 +154,60 @@ void MainWindow::sidebarUi() {
 	teamsLayout->setAlignment(Qt::AlignTop);
 	teamsGroup = new QButtonGroup();
 	teamsGroup->setExclusive(false);
-
-	QStringList competition_buttons;
-	for (const Competition& comp : db->getTable<Competition>())
-		competition_buttons.append(comp.name);
-	fillButtonsGroup(competition_buttons, championshipsLayout, championshipsGroup);
-
-	for (QAbstractButton* btn : championshipsGroup->buttons())
-		connect(btn, &QPushButton::clicked, this, [this, btn]() {
-			QStringList team_buttons;
-			for (const Team& team : db->getTable<Team>())
-				if (db->getName(team.competition_id) == btn->text()) team_buttons.append(team.name);
-			fillButtonsGroup(team_buttons, teamsLayout, teamsGroup);
-		});
-	championshipsGroup->buttons().first()->click();
 }
-
 
 
 
 // ---------- Signals ----------
 void MainWindow::wireServicesSignals() {
-	// Database
+	// Database -> UI
 	connect(database, &Database::initialized, this, [this]() {
-		connect(championshipsGroup, &QButtonGroup::buttonClicked, this, [this](QAbstractButton* button) {
-		    removeButtons(teamsLayout, teamsGroup);
-
-			// Add the new teams buttons corresponding to the clicked competition
-		});
+		QMetaObject::invokeMethod(database, "fetchCompetitions", Qt::QueuedConnection);
 
 		QMessageBox msgBox;
 		msgBox.setText("Database is initialized.");
 		msgBox.exec();
 	});
-	connect(database, &Database::destroyed, this, [this]() {
+	connect(database, &Database::updated, this, [this]() {
+		QMetaObject::invokeMethod(database, "fetchCompetitions", Qt::QueuedConnection);
 
+		QMessageBox msgBox;
+		msgBox.setText("Database is updated.");
+		msgBox.exec();
+	});
+	connect(database, &Database::competitionsFetched, this, [this](const QList<Competition>& competitions) {
+		removeButtons(competitionsLayout, competitionsGroup);
+		fillButtonsGroup(competitionsLayout, competitionsGroup, extractNames(competitions));
+		competitionsGroup->buttons().first()->click();
+
+		QMessageBox msgBox;
+		msgBox.setText("Database is competitions fetched.");
+		msgBox.exec();
+	});
+	connect(database, &Database::teamsFetched, this, [this](const QList<Team>& teams) {
+		removeButtons(teamsLayout, teamsGroup);
+		fillButtonsGroup(teamsLayout, teamsGroup, extractNames(teams));
+
+		QMessageBox msgBox;
+		msgBox.setText("Database is teams fetched.");
+		msgBox.exec();
+	});
+	connect(database, &Database::destroyed, this, [this]() {
 		QMessageBox msgBox;
 		msgBox.setText("Database is destroyed.");
 		msgBox.exec();
 	});
+	connect(competitionsGroup, &QButtonGroup::buttonClicked, this, [this](QAbstractButton* btn) {
+	    if (btn) {
+	        QMetaObject::invokeMethod(database, "fetchTeams", Qt::QueuedConnection, Q_ARG(QString, btn->text()));
+	    }
+	});
 
 
-	// Scraper
+	// Scraper -> UI
 	connect(scraper, &Scraper::initialized, this, [this]() {
 		btRefresh->setEnabled(true);
-		connect(btRefresh, &QPushButton::clicked, scraper, &Scraper::run);		
+		connect(btRefresh, &QPushButton::clicked, scraper, &Scraper::run);	// UI -> Scraper
 
 		QMessageBox msgBox;
 		msgBox.setText("Scraper is initialized.");
@@ -244,7 +252,7 @@ void MainWindow::wireOtherSignals() {
 
 
 // ---------- Utils ----------
-void	MainWindow::removeButtons(QBoxLayout* layout, QButtonGroup* group) {
+void MainWindow::removeButtons(QBoxLayout* layout, QButtonGroup* group) {
 	while (!group->buttons().isEmpty()) {
 		QAbstractButton* btn = group->buttons().first();
 		group->removeButton(btn);
@@ -255,37 +263,42 @@ void	MainWindow::removeButtons(QBoxLayout* layout, QButtonGroup* group) {
 	}
 }
 
-// QVBoxLayout* MainWindow::getScrollAreaLayout(QScrollArea *area) {
-// 	QWidget* container = new QWidget();
-// 	area->setWidget(container);
-// 	container->setStyleSheet("background: #6b7888;");
+void MainWindow::fillButtonsGroup(QBoxLayout* layout, QButtonGroup* group, const QStringList& buttons) {
+	for (const QString& buttonText : buttons) {
+		QPushButton* button = new QPushButton(buttonText, this);
+		button->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff; color: white;");
+		button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+		QFontMetrics fm(button->font());
+		QString elidedText = fm.elidedText(button->text(), Qt::ElideRight, button->width() + 15);
+		button->setText(elidedText);
+		button->setCheckable(true);
+		button->setFixedHeight(40);
+		group->addButton(button);
+		layout->addWidget(button);
+	}
+}
 
-// 	QVBoxLayout* layout = new QVBoxLayout();
-// 	container->setLayout(layout);
+QVBoxLayout* MainWindow::getScrollAreaLayout(QScrollArea *area) {
+	QWidget* container = new QWidget();
+	area->setWidget(container);
+	container->setStyleSheet("background: #6b7888;");
 
-// 	return layout;
-// }
+	QVBoxLayout* layout = new QVBoxLayout();
+	container->setLayout(layout);
 
-// void MainWindow::fillButtonsGroup(
-// 	QStringList buttons, QBoxLayout* layout, QButtonGroup* group) {
-// 	while (QLayoutItem* item = layout->takeAt(0)) {
-// 		if (QWidget* widget = item->widget()) {
-// 			group->removeButton(qobject_cast<QAbstractButton*>(widget));
-// 			widget->deleteLater();
-// 		}
-// 		delete item;
-// 	}
+	return layout;
+}
 
-// 	for (const QString& buttonText : buttons) {
-// 		QPushButton* button = new QPushButton(buttonText, this);
-// 		button->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff; color: white;");
-// 		button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-// 		QFontMetrics fm(button->font());
-// 		QString elidedText = fm.elidedText(button->text(), Qt::ElideRight, button->width() + 15);
-// 		button->setText(elidedText);
-// 		button->setCheckable(true);
-// 		button->setFixedHeight(40);
-// 		group->addButton(button);
-// 		layout->addWidget(button);
-// 	}
-// }
+QStringList MainWindow::extractNames(const QList<Competition> &items) {
+	QStringList names;
+	for (const Competition& item : items)
+		names << item.name;
+	return names;
+}
+
+QStringList MainWindow::extractNames(const QList<Team> &items) {
+	QStringList names;
+	for (const Team& item : items)
+		names << item.name;
+	return names;
+}
