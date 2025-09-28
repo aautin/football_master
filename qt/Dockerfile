@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     cmake \
     qt6-base-dev \
     qt6-tools-dev \
+    qt6-charts-dev \
     ninja-build \
     libgl1-mesa-dev \
     libopengl-dev \

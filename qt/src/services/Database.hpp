@@ -6,7 +6,7 @@
 #include <QQueue>
 #include <QDateTime>
 
-#include "Data.hpp"
+#include "data.hpp"
 
 class Database : public QObject {
 	Q_OBJECT

@@ -11,8 +11,9 @@
 #include <QWidget>
 #include <QLabel>
 #include <QThread>
+#include <QChartView>
 
-#include "Data.hpp"
+#include "data.hpp"
 
 class Database;
 class Scraper;
@@ -38,10 +39,6 @@ class MainWindow : public QMainWindow {
 		void			fillButtonsGroup(QBoxLayout* layout, QButtonGroup* group, const QStringList& buttons);
 		void			removeButtons(QBoxLayout* layout, QButtonGroup* group);
 		QVBoxLayout*	getScrollAreaLayout(QScrollArea* area);
-		QStringList		extractNames(const QList<Competition>& items);
-		QStringList		extractNames(const QList<Team>& items);
-		void			debug(const QString& text);
-		bool			isDebug(char** envp);
 
 		// UI Elements
 		QLabel*			updateDate;
@@ -50,7 +47,7 @@ class MainWindow : public QMainWindow {
 		QPushButton*	btClose;
 
 		QGridLayout*	grid;
-		QWidget*		dataVisualizer;
+		QChartView*		chartView;
 
 		QVBoxLayout*	competitionsLayout;
 		QButtonGroup*	competitionsGroup;
@@ -63,6 +60,10 @@ class MainWindow : public QMainWindow {
 		QThread*		databaseThread;
 		Scraper*		scraper;
 		QThread*		scraperThread;
+		// Analyzer*		analyzer;
+		// QThread*		analyzerThread;
+
+		QString			selectedTeam;
 
 		bool 			_debug;
 };

@@ -38,3 +38,6 @@ struct Match {
 	int	shots_on_target1;
 	int	shots_on_target2;
 };
+
+QStringList	extractNames(const QList<Competition> &items);
+QStringList	extractNames(const QList<Team> &items);

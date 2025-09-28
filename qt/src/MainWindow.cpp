@@ -8,6 +8,7 @@
 #include "MainWindow.hpp"
 #include "Database.hpp"
 #include "Scraper.hpp"
+#include "utils.hpp"
 
 // ---------- Constructor Destructor ----------
 MainWindow::MainWindow(char** envp, QWidget* parent)
@@ -122,10 +123,12 @@ void MainWindow::centralUi() {
 		grid->setColumnStretch(col, 0);
 	}
 
-	dataVisualizer = new QWidget(this);
-	dataVisualizer->setProperty("variant", "dataVisualizer");
-	dataVisualizer->setStyleSheet("[variant=dataVisualizer] { background: #6b7888; border: 2px solid #e8e8e8ff; }");
-	grid->addWidget(dataVisualizer, 1, 0, 12, 11);
+	chartView = new QChartView(new QChart());
+	chartView->chart()->removeAllSeries();
+	chartView->chart()->setTitle("");
+	chartView->setProperty("variant", "chartView");
+	chartView->setStyleSheet("[variant=chartView] { background: #6b7888; border: 2px solid #e8e8e8ff; }");
+	grid->addWidget(chartView, 1, 0, 12, 11);
 }
 
 void MainWindow::sidebarUi() {
@@ -162,34 +165,36 @@ void MainWindow::wireServicesSignals() {
 	connect(database, &Database::initialized, this, [this]() {
 		QMetaObject::invokeMethod(database, "fetchCompetitions", Qt::QueuedConnection);
 
-		debug("Database is initialized.");
+		debug("Database is initialized.", _debug);
 	});
 	connect(database, &Database::updated, this, [this]() {
 		QMetaObject::invokeMethod(database, "fetchCompetitions", Qt::QueuedConnection);
 		QMetaObject::invokeMethod(database, "fetchLastUpdateDate", Qt::QueuedConnection);
 
-		debug("Database is updated.");
+		debug("Database is updated.", _debug);
 	});
 	connect(database, &Database::competitionsFetched, this, [this](const QList<Competition>& competitions) {
 		removeButtons(competitionsLayout, competitionsGroup);
 		fillButtonsGroup(competitionsLayout, competitionsGroup, extractNames(competitions));
 		competitionsGroup->buttons().first()->click();
 
-		debug("Database is competitions fetched.");
+		debug("Database is competitions fetched.", _debug);
 	});
 	connect(database, &Database::teamsFetched, this, [this](const QList<Team>& teams) {
 		removeButtons(teamsLayout, teamsGroup);
 		fillButtonsGroup(teamsLayout, teamsGroup, extractNames(teams));
+		for (QAbstractButton* btn : teamsGroup->buttons())
+			if (selectedTeam == btn->text()) btn->setChecked(true);
 
-		debug("Database is teams fetched.");
+		debug("Database is teams fetched.", _debug);
 	});
 	connect(database, &Database::lastUpdateDateFetched, this, [this](const QDateTime& date) {
 		updateDate->setText(QString("Last update:\n %1").arg(date.toString("yyyy-MM-dd HH:mm")));
 		
-		debug("Database last update date fetched.");
+		debug("Database last update date fetched.", _debug);
 	});
 	connect(database, &Database::destroyed, this, [this]() {
-		debug("Database is destroyed.");
+		debug("Database is destroyed.", _debug);
 	});
 	connect(competitionsGroup, &QButtonGroup::buttonClicked, this, [this](QAbstractButton* btn) {
 	    if (btn) {
@@ -203,7 +208,7 @@ void MainWindow::wireServicesSignals() {
 		btRefresh->setEnabled(true);
 		connect(btRefresh, &QPushButton::clicked, scraper, &Scraper::run);	// UI -> Scraper
 
-		debug("Scraper is initialized.");
+		debug("Scraper is initialized.", _debug);
 	});
 	connect(scraper, &Scraper::running, this, [this]() {
 		btRefresh->setEnabled(false);
@@ -212,12 +217,12 @@ void MainWindow::wireServicesSignals() {
     	btRefresh->setEnabled(true);
 		QMetaObject::invokeMethod(database, "update", Qt::QueuedConnection);
 
-		debug("Scraping is ran.");
+		debug("Scraping is ran.", _debug);
 	});
 	connect(scraper, &Scraper::destroyed, this, [this]() {
 		btRefresh->setEnabled(false);
 
-		debug("Scraping is destroyed.");
+		debug("Scraping is destroyed.", _debug);
 	});
 }
 
@@ -226,16 +231,20 @@ void MainWindow::wireOtherSignals() {
 	connect(btClose, &QPushButton::clicked, this, [this]() {this->close();});
 
 	connect(teamsGroup, &QButtonGroup::buttonClicked, this, [this](QAbstractButton* btn) {
-		debug(QString("Button %1").arg(btn->isChecked() ? "selected" : "deselected"));
+		chartView->chart()->removeAllSeries();
+		chartView->chart()->setTitle("");
+		if (btn && btn->isChecked()) {
+			selectedTeam = btn->text();
+			// QMetaObject::invokeMethod(analyzer, "analyze", Qt::QueuedConnection, Q_ARG(QString, selectedTeam));
+		}
+		else selectedTeam = "None";
+
+		for (auto b : teamsGroup->buttons())
+			if (b != btn) b->setChecked(false);
+
+		debug(QString(selectedTeam), _debug);
 	});
 }
-
-
-
-
-
-
-
 
 
 
@@ -278,36 +287,4 @@ QVBoxLayout* MainWindow::getScrollAreaLayout(QScrollArea *area) {
 	container->setLayout(layout);
 
 	return layout;
-}
-
-QStringList MainWindow::extractNames(const QList<Competition> &items) {
-	QStringList names;
-	for (const Competition& item : items)
-		names << item.name;
-	return names;
-}
-
-QStringList MainWindow::extractNames(const QList<Team> &items) {
-	QStringList names;
-	for (const Team& item : items)
-		names << item.name;
-	return names;
-}
-
-void MainWindow::debug(const QString& text) {
-	if (!_debug)
-		return;
-
-	QMessageBox msgBox;
-	msgBox.setText(text);
-	msgBox.exec();
-}
-
-bool MainWindow::isDebug(char** envp) {
-	while (*envp) {
-		if (std::string(*envp) == "DEBUG_FOOTBALL_MASTER=TRUE")
-			return true;
-		envp++;
-	}
-	return false;
 }
