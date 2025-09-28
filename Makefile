@@ -54,3 +54,10 @@ clean:
 	docker-compose down -v
 
 dev: up build-qt run-qt
+
+debug: up build-qt run-qt-debug
+	
+run-qt-debug:
+	@echo "🖥️ Lancement de l'application Qt en mode debug..."
+	@xhost +local:docker 2>/dev/null || echo "⚠️ xhost non disponible"
+	@docker-compose exec -e DEBUG_FOOTBALL_MASTER=TRUE qt /app/build/$(EXECUTABLE) > last_run.log 2>&1

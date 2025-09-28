@@ -30,6 +30,22 @@ def connect_db():
         print(f"❌ Erreur de connexion à la base de données: {e}")
         return None
 
+def insert_last_update_date(connection):
+	try:
+		cursor = connection.cursor()
+		cursor.execute("""
+			UPDATE app_settings SET last_update_date = NOW();
+			INSERT INTO app_settings (last_update_date)
+			SELECT NOW()
+			WHERE NOT EXISTS (SELECT 1 FROM app_settings);
+		""")
+		connection.commit()
+		cursor.close()
+		print("✅ Date de mise à jour insérée ou mise à jour")
+	except psycopg2.Error as e:
+		print(f"❌ Erreur lors de l'insertion/mise à jour de app_settings.last_update_date: {e}")
+		connection.rollback()
+
 def insert_competitions(connection, competitions):
     try:
         cursor = connection.cursor()
@@ -361,6 +377,9 @@ def run_scraper():
 
 		competitions = getCompetitionsAttributes(competition_entries)
 		teams = getTeamsAttributes(competition_soups, competitions)
+
+		insert_last_update_date(db_connection)
+
 		insert_competitions(db_connection, competitions)
 		insert_teams(db_connection, teams)
 

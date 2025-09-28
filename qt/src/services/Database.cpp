@@ -129,6 +129,15 @@ void Database::fetchTeams(const QString &competition_name) {
 // 	emit matchesFetched(filteredMatches);
 // }
 
+void Database::fetchLastUpdateDate() {
+	if (!isInitialized) {
+		pendingSlots.enqueue([this]() { fetchLastUpdateDate(); });
+		return;
+	}
+
+	emit lastUpdateDateFetched(lastUpdate);
+}
+
 void Database::destroy() {
 	if (!isInitialized) {
 		pendingSlots.enqueue([this]() { destroy(); });

@@ -40,6 +40,8 @@ class MainWindow : public QMainWindow {
 		QVBoxLayout*	getScrollAreaLayout(QScrollArea* area);
 		QStringList		extractNames(const QList<Competition>& items);
 		QStringList		extractNames(const QList<Team>& items);
+		void			debug(const QString& text);
+		bool			isDebug(char** envp);
 
 		// UI Elements
 		QLabel*			updateDate;
@@ -61,4 +63,6 @@ class MainWindow : public QMainWindow {
 		QThread*		databaseThread;
 		Scraper*		scraper;
 		QThread*		scraperThread;
+
+		bool 			_debug;
 };

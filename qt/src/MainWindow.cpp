@@ -11,14 +11,13 @@
 
 // ---------- Constructor Destructor ----------
 MainWindow::MainWindow(char** envp, QWidget* parent)
-    : QMainWindow(parent) {
+    : QMainWindow(parent), _debug(isDebug(envp)) {
 
 	// UI Setup
 	windowUi();
 	centralUi();
 	headerUi();
 	sidebarUi();
-
 
 	// Services Setup
 	database = new Database();
@@ -82,7 +81,6 @@ void MainWindow::headerUi() {
 
 	updateDate = new QLabel(this);
 	grid->addWidget(updateDate, 0, 8, 1, 3);
-	// updateDate->setText("Last Update: \n" + db->getDate().toString("dd/MM/yyyy hh:mm"));
 	updateDate->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 	updateDate->setFont(QFont("Arial", 7, QFont::Normal));
 
@@ -164,38 +162,34 @@ void MainWindow::wireServicesSignals() {
 	connect(database, &Database::initialized, this, [this]() {
 		QMetaObject::invokeMethod(database, "fetchCompetitions", Qt::QueuedConnection);
 
-		QMessageBox msgBox;
-		msgBox.setText("Database is initialized.");
-		msgBox.exec();
+		debug("Database is initialized.");
 	});
 	connect(database, &Database::updated, this, [this]() {
 		QMetaObject::invokeMethod(database, "fetchCompetitions", Qt::QueuedConnection);
+		QMetaObject::invokeMethod(database, "fetchLastUpdateDate", Qt::QueuedConnection);
 
-		QMessageBox msgBox;
-		msgBox.setText("Database is updated.");
-		msgBox.exec();
+		debug("Database is updated.");
 	});
 	connect(database, &Database::competitionsFetched, this, [this](const QList<Competition>& competitions) {
 		removeButtons(competitionsLayout, competitionsGroup);
 		fillButtonsGroup(competitionsLayout, competitionsGroup, extractNames(competitions));
 		competitionsGroup->buttons().first()->click();
 
-		QMessageBox msgBox;
-		msgBox.setText("Database is competitions fetched.");
-		msgBox.exec();
+		debug("Database is competitions fetched.");
 	});
 	connect(database, &Database::teamsFetched, this, [this](const QList<Team>& teams) {
 		removeButtons(teamsLayout, teamsGroup);
 		fillButtonsGroup(teamsLayout, teamsGroup, extractNames(teams));
 
-		QMessageBox msgBox;
-		msgBox.setText("Database is teams fetched.");
-		msgBox.exec();
+		debug("Database is teams fetched.");
+	});
+	connect(database, &Database::lastUpdateDateFetched, this, [this](const QDateTime& date) {
+		updateDate->setText(QString("Last update:\n %1").arg(date.toString("yyyy-MM-dd HH:mm")));
+		
+		debug("Database last update date fetched.");
 	});
 	connect(database, &Database::destroyed, this, [this]() {
-		QMessageBox msgBox;
-		msgBox.setText("Database is destroyed.");
-		msgBox.exec();
+		debug("Database is destroyed.");
 	});
 	connect(competitionsGroup, &QButtonGroup::buttonClicked, this, [this](QAbstractButton* btn) {
 	    if (btn) {
@@ -209,37 +203,31 @@ void MainWindow::wireServicesSignals() {
 		btRefresh->setEnabled(true);
 		connect(btRefresh, &QPushButton::clicked, scraper, &Scraper::run);	// UI -> Scraper
 
-		QMessageBox msgBox;
-		msgBox.setText("Scraper is initialized.");
-		msgBox.exec();
+		debug("Scraper is initialized.");
 	});
 	connect(scraper, &Scraper::running, this, [this]() {
 		btRefresh->setEnabled(false);
-
-		QMessageBox msgBox;
-		msgBox.setText("Scraping is running.");
-		msgBox.exec();
 	});
 	connect(scraper, &Scraper::ran, this, [this]() {
     	btRefresh->setEnabled(true);
 		QMetaObject::invokeMethod(database, "update", Qt::QueuedConnection);
 
-		QMessageBox msgBox;
-		msgBox.setText("Scraping is ran.");
-		msgBox.exec();
+		debug("Scraping is ran.");
 	});
 	connect(scraper, &Scraper::destroyed, this, [this]() {
 		btRefresh->setEnabled(false);
 
-		QMessageBox msgBox;
-		msgBox.setText("Scraping is destroyed.");
-		msgBox.exec();
+		debug("Scraping is destroyed.");
 	});
 }
 
 void MainWindow::wireOtherSignals() {
 	connect(btMinimize, &QPushButton::clicked, this, [this]() {this->showMinimized();});
 	connect(btClose, &QPushButton::clicked, this, [this]() {this->close();});
+
+	connect(teamsGroup, &QButtonGroup::buttonClicked, this, [this](QAbstractButton* btn) {
+		debug(QString("Button %1").arg(btn->isChecked() ? "selected" : "deselected"));
+	});
 }
 
 
@@ -266,7 +254,10 @@ void MainWindow::removeButtons(QBoxLayout* layout, QButtonGroup* group) {
 void MainWindow::fillButtonsGroup(QBoxLayout* layout, QButtonGroup* group, const QStringList& buttons) {
 	for (const QString& buttonText : buttons) {
 		QPushButton* button = new QPushButton(buttonText, this);
-		button->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff; color: white;");
+		button->setStyleSheet(
+			"QPushButton { background: #8e737d; border: 2px solid #e8e8e8ff; color: white; }"
+			"QPushButton:checked { background: #4a5a6a; color: #ffd700; }"
+		);
 		button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 		QFontMetrics fm(button->font());
 		QString elidedText = fm.elidedText(button->text(), Qt::ElideRight, button->width() + 15);
@@ -301,4 +292,22 @@ QStringList MainWindow::extractNames(const QList<Team> &items) {
 	for (const Team& item : items)
 		names << item.name;
 	return names;
+}
+
+void MainWindow::debug(const QString& text) {
+	if (!_debug)
+		return;
+
+	QMessageBox msgBox;
+	msgBox.setText(text);
+	msgBox.exec();
+}
+
+bool MainWindow::isDebug(char** envp) {
+	while (*envp) {
+		if (std::string(*envp) == "DEBUG_FOOTBALL_MASTER=TRUE")
+			return true;
+		envp++;
+	}
+	return false;
 }
