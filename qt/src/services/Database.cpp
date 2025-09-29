@@ -76,6 +76,11 @@ void Database::update() {
 			match.shots_on_target2 = query.value(15).toInt();
 			matches.append(match);
 		}
+		for (Match& match : matches) {
+			match.competition_name = toName(match.competition_id);
+			match.team1_name = toName(match.team1_id);
+			match.team2_name = toName(match.team2_id);
+		}
 	}
 
 	if (query.exec("SELECT last_update_date FROM app_settings") && query.next())
@@ -113,21 +118,18 @@ void Database::fetchTeams(const QString &competition_name) {
 	emit teamsFetched(filteredTeams);
 }
 
-// void Database::fetchMatches(const QString &competition_name, const QString &team1_name, const QString &team2_name) {
-// 	if (!isInitialized) {
-// 		pendingSlots.enqueue([this, competition_name, team1_name, team2_name]() { fetchMatches(competition_name, team1_name, team2_name); });
-// 		return;
-// 	}
+void Database::fetchMatches(const QString &teamName) {
+	if (!isInitialized) {
+		pendingSlots.enqueue([this, teamName]() { fetchMatches(teamName); });
+		return;
+	}
 
-// 	QList<Match> filteredMatches;
-// 	for (const Match& match : matches) {
-// 		if ((competition_name == "None" || toName(match.competition_id) == competition_name)
-// 			&& (team1_name == "None" || toName(match.team1_id) == team1_name)
-// 			&& (team2_name == "None" || toName(match.team2_id) == team2_name))
-// 			filteredMatches.append(match);
-// 	}
-// 	emit matchesFetched(filteredMatches);
-// }
+	QList<Match> filteredMatches;
+	for (const Match& match : matches)
+		if (teamName == "None" || match.team1_name == teamName || match.team2_name == teamName)
+			filteredMatches.append(match);
+	emit matchesFetched(teamName, filteredMatches);
+}
 
 void Database::fetchLastUpdateDate() {
 	if (!isInitialized) {

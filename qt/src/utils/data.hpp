@@ -15,10 +15,14 @@ struct Team {
 
 struct Match {
 	int	id;
-	int	competition_id;
 
-	int	team1_id;
-	int	team2_id;
+	int		competition_id;
+	QString	competition_name;
+
+	int		team1_id;
+	int		team2_id;
+	QString	team1_name;
+	QString	team2_name;
 
 	int	score1;
 	int	score2;

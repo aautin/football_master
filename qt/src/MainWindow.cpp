@@ -8,6 +8,7 @@
 #include "MainWindow.hpp"
 #include "Database.hpp"
 #include "Scraper.hpp"
+#include "Analyzer.hpp"
 #include "utils.hpp"
 
 // ---------- Constructor Destructor ----------
@@ -23,9 +24,11 @@ MainWindow::MainWindow(char** envp, QWidget* parent)
 	// Services Setup
 	database = new Database();
 	scraper = new Scraper();
+	analyzer = new Analyzer();
 
 	database->moveToThread(databaseThread = new QThread(this));
 	scraper->moveToThread(scraperThread = new QThread(this));
+	analyzer->moveToThread(analyzerThread = new QThread(this));
 
 	wireServicesSignals();
 	wireOtherSignals();
@@ -41,8 +44,10 @@ MainWindow::MainWindow(char** envp, QWidget* parent)
 	connect(scraperThread, &QThread::started, scraper, [this]() {
 	    scraper->initialize(QString("http://%1:8000").arg(QString::fromStdString(std::getenv("SCRAPER_HOST"))));
 	});
+
 	databaseThread->start();
 	scraperThread->start();
+	analyzerThread->start();
 }
 
 MainWindow::~MainWindow() {
@@ -126,6 +131,7 @@ void MainWindow::centralUi() {
 	chartView = new QChartView(new QChart());
 	chartView->chart()->removeAllSeries();
 	chartView->chart()->setTitle("");
+	chartView->setRenderHint(QPainter::Antialiasing);
 	chartView->setProperty("variant", "chartView");
 	chartView->setStyleSheet("[variant=chartView] { background: #6b7888; border: 2px solid #e8e8e8ff; }");
 	grid->addWidget(chartView, 1, 0, 12, 11);
@@ -161,7 +167,7 @@ void MainWindow::sidebarUi() {
 
 // ---------- Signals ----------
 void MainWindow::wireServicesSignals() {
-	// Database -> UI
+	// Database <-> UI
 	connect(database, &Database::initialized, this, [this]() {
 		QMetaObject::invokeMethod(database, "fetchCompetitions", Qt::QueuedConnection);
 
@@ -184,7 +190,7 @@ void MainWindow::wireServicesSignals() {
 		removeButtons(teamsLayout, teamsGroup);
 		fillButtonsGroup(teamsLayout, teamsGroup, extractNames(teams));
 		for (QAbstractButton* btn : teamsGroup->buttons())
-			if (selectedTeam == btn->text()) btn->setChecked(true);
+			if (selectedTeam == btn->property("fullName").toString()) btn->setChecked(true);
 
 		debug("Database is teams fetched.", _debug);
 	});
@@ -197,13 +203,11 @@ void MainWindow::wireServicesSignals() {
 		debug("Database is destroyed.", _debug);
 	});
 	connect(competitionsGroup, &QButtonGroup::buttonClicked, this, [this](QAbstractButton* btn) {
-	    if (btn) {
-	        QMetaObject::invokeMethod(database, "fetchTeams", Qt::QueuedConnection, Q_ARG(QString, btn->text()));
-	    }
+	    QMetaObject::invokeMethod(database, "fetchTeams", Qt::QueuedConnection, Q_ARG(QString, btn->property("fullName").toString()));
 	});
 
 
-	// Scraper -> UI
+	// Scraper <-> UI
 	connect(scraper, &Scraper::initialized, this, [this]() {
 		btRefresh->setEnabled(true);
 		connect(btRefresh, &QPushButton::clicked, scraper, &Scraper::run);	// UI -> Scraper
@@ -224,6 +228,28 @@ void MainWindow::wireServicesSignals() {
 
 		debug("Scraping is destroyed.", _debug);
 	});
+
+	// Database <-> Analyzer
+	connect(database, &Database::matchesFetched, this, [this](const QString& teamName, const QList<Match>& matches) {
+		QMetaObject::invokeMethod(analyzer, "analyze", Qt::QueuedConnection, Q_ARG(QString, teamName), Q_ARG(QList<Match>, matches));
+
+		debug("Database is matches fetched.", _debug);
+	});
+
+	// Analyzer <-> UI
+	connect(analyzer, &Analyzer::analyzed, this, [this](const QString& teamName, const QList<QList<QPointF>>& points) {
+		if (teamName != selectedTeam) return;
+		chartView->chart()->removeAllSeries();
+		chartView->chart()->setTitle(QString("Performance of %1").arg(teamName));
+		
+		chartView->chart()->addSeries(createLineSeries(points[0], "Goals For"));
+		chartView->chart()->addSeries(createLineSeries(points[1], "Goals Against"));
+		chartView->chart()->createDefaultAxes();
+		chartView->chart()->axes(Qt::Vertical).first()->setRange(0, 10);
+		chartView->chart()->axes(Qt::Horizontal).first()->setRange(1, points[0].size());
+
+		debug("Analyzer is analyzed.", _debug);
+	});
 }
 
 void MainWindow::wireOtherSignals() {
@@ -231,13 +257,15 @@ void MainWindow::wireOtherSignals() {
 	connect(btClose, &QPushButton::clicked, this, [this]() {this->close();});
 
 	connect(teamsGroup, &QButtonGroup::buttonClicked, this, [this](QAbstractButton* btn) {
-		chartView->chart()->removeAllSeries();
-		chartView->chart()->setTitle("");
 		if (btn && btn->isChecked()) {
-			selectedTeam = btn->text();
-			// QMetaObject::invokeMethod(analyzer, "analyze", Qt::QueuedConnection, Q_ARG(QString, selectedTeam));
+			selectedTeam = btn->property("fullName").toString();
+			QMetaObject::invokeMethod(database, "fetchMatches", Qt::QueuedConnection, Q_ARG(QString, selectedTeam));
 		}
-		else selectedTeam = "None";
+		else {
+			selectedTeam = "None";
+			chartView->chart()->removeAllSeries();
+			chartView->chart()->setTitle("");
+		}
 
 		for (auto b : teamsGroup->buttons())
 			if (b != btn) b->setChecked(false);
@@ -271,6 +299,7 @@ void MainWindow::fillButtonsGroup(QBoxLayout* layout, QButtonGroup* group, const
 		QFontMetrics fm(button->font());
 		QString elidedText = fm.elidedText(button->text(), Qt::ElideRight, button->width() + 15);
 		button->setText(elidedText);
+		button->setProperty("fullName", buttonText);
 		button->setCheckable(true);
 		button->setFixedHeight(40);
 		group->addButton(button);

@@ -15,6 +15,7 @@
 
 #include "data.hpp"
 
+class Analyzer;
 class Database;
 class Scraper;
 class MainWindow : public QMainWindow {
@@ -60,8 +61,8 @@ class MainWindow : public QMainWindow {
 		QThread*		databaseThread;
 		Scraper*		scraper;
 		QThread*		scraperThread;
-		// Analyzer*		analyzer;
-		// QThread*		analyzerThread;
+		Analyzer*		analyzer;
+		QThread*		analyzerThread;
 
 		QString			selectedTeam;
 

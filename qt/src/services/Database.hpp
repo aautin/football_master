@@ -17,7 +17,7 @@ class Database : public QObject {
 
 		void	fetchCompetitions();
 		void	fetchTeams(const QString &competition_name = "None");
-		// void	fetchMatches(const QString &competition_name = "None", const QString &team1_name = "None", const QString &team2_name = "None");
+		void	fetchMatches(const QString &team_name = "None");
 		void	fetchLastUpdateDate();
 
 		void	destroy();
@@ -28,7 +28,7 @@ class Database : public QObject {
 
 		void	competitionsFetched(const QList<Competition>&);
 		void	teamsFetched(const QList<Team>&);
-		void	matchesFetched(const QList<Match>&);
+		void	matchesFetched(const QString&, const QList<Match>&);
 		void	lastUpdateDateFetched(const QDateTime&);
 
 		void	destroyed();

@@ -1,4 +1,5 @@
 #include <QMessageBox>
+#include <QValueAxis>
 
 #include "utils.hpp"
 
@@ -18,4 +19,12 @@ bool isDebug(char** envp) {
 		envp++;
 	}
 	return false;
+}
+
+QLineSeries* createLineSeries(const QList<QPointF>& points, const QString& name) {
+	auto* series = new QLineSeries();
+	series->setName(name);
+	for (const QPointF& pt : points)
+		series->append(pt);
+	return series;
 }
