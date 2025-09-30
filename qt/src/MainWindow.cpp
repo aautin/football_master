@@ -4,6 +4,8 @@
 #include <QShortcut>
 #include <QMessageBox>
 #include <QWindow>
+#include <QValueAxis>
+#include <QCategoryAxis>
 
 #include "MainWindow.hpp"
 #include "Database.hpp"
@@ -51,15 +53,15 @@ MainWindow::MainWindow(char** envp, QWidget* parent)
 }
 
 MainWindow::~MainWindow() {
-	databaseThread->quit();
-	databaseThread->wait();
 	delete databaseThread;
-	delete database;
-
-	scraperThread->quit();
-	scraperThread->wait();
 	delete scraperThread;
+	delete analyzerThread;
+	delete database;
 	delete scraper;
+	delete analyzer;
+
+	delete competitionsGroup;
+	delete teamsGroup;
 }
 
 
@@ -80,33 +82,33 @@ void MainWindow::windowUi() {
 
 void MainWindow::headerUi() {
 	QLabel* titleBar = new QLabel(this);
-	grid->addWidget(titleBar, 0, 0, 1, 11);
+	grid->addWidget(titleBar, 0, 0, 1, 12);
 	titleBar->setText("Football Master");
 	titleBar->setAlignment(Qt::AlignCenter);
 	titleBar->setFont(QFont("Arial", 16, QFont::Bold));
 
 	updateDate = new QLabel(this);
-	grid->addWidget(updateDate, 0, 8, 1, 3);
+	grid->addWidget(updateDate, 0, 9, 1, 3);
 	updateDate->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 	updateDate->setFont(QFont("Arial", 7, QFont::Normal));
 
 	btRefresh = new QPushButton(this);
 	btRefresh->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff");
-	grid->addWidget(btRefresh, 0, 11, 1, 1);
+	grid->addWidget(btRefresh, 0, 12, 1, 1);
 	btRefresh->setIcon(QIcon(":/assets/refresh.png"));
 	btRefresh->setIconSize(btRefresh->size() * 0.9);
 	btRefresh->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
 	btMinimize = new QPushButton(this);
 	btMinimize->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff");
-	grid->addWidget(btMinimize, 0, 12, 1, 1);
+	grid->addWidget(btMinimize, 0, 13, 1, 1);
 	btMinimize->setIcon(QIcon(":/assets/minimize.png"));
 	btMinimize->setIconSize(btMinimize->size() * 0.9);
 	btMinimize->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
 	btClose = new QPushButton(this);
 	btClose->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff");
-	grid->addWidget(btClose, 0, 13, 1, 1);
+	grid->addWidget(btClose, 0, 14, 1, 1);
 	btClose->setIcon(QIcon(":/assets/close.png"));
 	btClose->setIconSize(btClose->size() * 1);
 	btClose->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -123,18 +125,26 @@ void MainWindow::centralUi() {
 		grid->setRowMinimumHeight(row, this->height() / 13);
 		grid->setRowStretch(row, 0);
 	}
-	for (int col = 0; col < 14; ++col) {
-		grid->setColumnMinimumWidth(col, this->width() / 14);
+	for (int col = 0; col < 15; ++col) {
+		grid->setColumnMinimumWidth(col, this->width() / 15);
 		grid->setColumnStretch(col, 0);
 	}
 
-	chartView = new QChartView(new QChart());
-	chartView->chart()->removeAllSeries();
-	chartView->chart()->setTitle("");
-	chartView->setRenderHint(QPainter::Antialiasing);
-	chartView->setProperty("variant", "chartView");
-	chartView->setStyleSheet("[variant=chartView] { background: #6b7888; border: 2px solid #e8e8e8ff; }");
-	grid->addWidget(chartView, 1, 0, 12, 11);
+	for (int i = 0; i < 4; ++i) {
+	    chartViews[i] = new QChartView(new QChart());
+		clearChart(chartViews[i]);
+		chartViews[i]->chart()->setBackgroundBrush(QBrush(QColor("#6b7888")));
+		chartViews[i]->setRenderHint(QPainter::Antialiasing);
+		chartViews[i]->setProperty("variant", "chartView");
+		chartViews[i]->setStyleSheet("[variant=chartView] { background: #6b7888; border: 2px solid #e8e8e8ff }");
+		chartViews[i]->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+		chartViews[i]->chart()->setMargins(QMargins(0, 0, 0, 0));
+	}
+	
+	grid->addWidget(chartViews[0], 1, 0, 6, 6);   // Top-left
+	grid->addWidget(chartViews[1], 1, 6, 6, 6);   // Top-right
+	grid->addWidget(chartViews[2], 7, 0, 6, 6);   // Bottom-left
+	grid->addWidget(chartViews[3], 7, 6, 6, 6);   // Bottom-right
 }
 
 void MainWindow::sidebarUi() {
@@ -144,7 +154,7 @@ void MainWindow::sidebarUi() {
 	competitionsArea->setWidgetResizable(true);
 	competitionsArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	competitionsArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	grid->addWidget(competitionsArea, 1, 11, 6, 3);
+	grid->addWidget(competitionsArea, 1, 12, 6, 3);
 	competitionsLayout = getScrollAreaLayout(competitionsArea);
 	competitionsLayout->setAlignment(Qt::AlignTop);
 	competitionsGroup = new QButtonGroup();
@@ -156,7 +166,7 @@ void MainWindow::sidebarUi() {
 	teamsArea->setWidgetResizable(true);
 	teamsArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	teamsArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	grid->addWidget(teamsArea, 7, 11, 6, 3);
+	grid->addWidget(teamsArea, 7, 12, 6, 3);
 	teamsLayout = getScrollAreaLayout(teamsArea);
 	teamsLayout->setAlignment(Qt::AlignTop);
 	teamsGroup = new QButtonGroup();
@@ -237,24 +247,54 @@ void MainWindow::wireServicesSignals() {
 	});
 
 	// Analyzer <-> UI
-	connect(analyzer, &Analyzer::analyzed, this, [this](const QString& teamName, const QList<QList<QPointF>>& points) {
+	connect(analyzer, &Analyzer::analyzed, this, [this](const QString& teamName, const QList<QList<QPointF>>& points, const QList<QString>& opponents) {
 		if (teamName != selectedTeam) return;
-		chartView->chart()->removeAllSeries();
-		chartView->chart()->setTitle(QString("Performance of %1").arg(teamName));
-		
-		chartView->chart()->addSeries(createLineSeries(points[0], "Goals For"));
-		chartView->chart()->addSeries(createLineSeries(points[1], "Goals Against"));
-		chartView->chart()->createDefaultAxes();
-		chartView->chart()->axes(Qt::Vertical).first()->setRange(0, 10);
-		chartView->chart()->axes(Qt::Horizontal).first()->setRange(1, points[0].size());
+		for (auto chartView : chartViews) clearChart(chartView);
+		chartViews[0]->chart()->setTitle(QString("Performance of %1").arg(teamName));
+
+		chartViews[0]->chart()->addSeries(createLineSeries(points[0], "Goals For", 4, QColor(100, 200, 100)));
+		chartViews[0]->chart()->addSeries(createLineSeries(points[1], "Goals Against", 2, QColor(220, 100, 100)));
+		chartViews[0]->chart()->createDefaultAxes();
+		chartViews[0]->chart()->axes(Qt::Vertical).first()->setRange(0, 10);
+		chartViews[0]->chart()->axes(Qt::Horizontal).first()->hide();
+		QValueAxis* axisY = qobject_cast<QValueAxis*>(chartViews[0]->chart()->axes(Qt::Vertical).first());
+		axisY->setTickCount(11);
+		axisY->setLabelFormat("%d");
+
+		QValueAxis* axisX = qobject_cast<QValueAxis*>(chartViews[0]->chart()->axes(Qt::Horizontal).first());
+		QCategoryAxis* axisXcat = new QCategoryAxis();
+		if (opponents[0].size() > 6)
+			axisXcat->append(opponents[0].left(6), 1);
+		else
+			axisXcat->append(opponents[0], 1);
+		for (int i = 1; i < opponents.size(); ++i)
+			axisXcat->append(opponents[i], i + 1);
+		axisXcat->setRange(1, opponents.size());
+		axisXcat->setLabelsPosition(QCategoryAxis::AxisLabelsPositionOnValue);
+		QFont axisFont = axisXcat->labelsFont();
+		axisFont.setPointSize(7);
+		axisXcat->setLabelsFont(axisFont);
+
+		chartViews[0]->chart()->addAxis(axisXcat, Qt::AlignBottom);
+		for (auto series : chartViews[0]->chart()->series())
+			series->attachAxis(axisXcat);
 
 		debug("Analyzer is analyzed.", _debug);
 	});
 }
 
 void MainWindow::wireOtherSignals() {
-	connect(btMinimize, &QPushButton::clicked, this, [this]() {this->showMinimized();});
-	connect(btClose, &QPushButton::clicked, this, [this]() {this->close();});
+	connect(btMinimize, &QPushButton::clicked, this, [this]() { this->showMinimized(); });
+	connect(btClose, &QPushButton::clicked, this, [this]() {
+		databaseThread->quit();
+		scraperThread->quit();
+		analyzerThread->quit();
+		databaseThread->wait();
+		scraperThread->wait();
+		analyzerThread->wait();
+
+		this->close();
+	});
 
 	connect(teamsGroup, &QButtonGroup::buttonClicked, this, [this](QAbstractButton* btn) {
 		if (btn && btn->isChecked()) {
@@ -263,8 +303,7 @@ void MainWindow::wireOtherSignals() {
 		}
 		else {
 			selectedTeam = "None";
-			chartView->chart()->removeAllSeries();
-			chartView->chart()->setTitle("");
+			for (auto chartView : chartViews) clearChart(chartView);
 		}
 
 		for (auto b : teamsGroup->buttons())

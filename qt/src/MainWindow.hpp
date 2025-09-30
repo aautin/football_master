@@ -48,7 +48,7 @@ class MainWindow : public QMainWindow {
 		QPushButton*	btClose;
 
 		QGridLayout*	grid;
-		QChartView*		chartView;
+		QChartView*		chartViews[4];
 
 		QVBoxLayout*	competitionsLayout;
 		QButtonGroup*	competitionsGroup;

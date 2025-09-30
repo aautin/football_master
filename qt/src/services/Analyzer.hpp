@@ -16,5 +16,5 @@ class Analyzer : public QObject {
 		void	analyze(const QString& teamName, const QList<Match>& matches);
 
 	signals:
-		void	analyzed(const QString& teamName, const QList<QList<QPointF>>& points);
+		void	analyzed(const QString&, const QList<QList<QPointF>>&, const QList<QString>&);
 };
