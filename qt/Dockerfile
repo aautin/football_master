@@ -4,6 +4,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
     gdb \
+    valgrind \
+    curl \
     build-essential \
     libqt6sql6-psql \
     cmake \
@@ -15,7 +17,6 @@ RUN apt-get update && apt-get install -y \
     libopengl-dev \
     libxkbcommon-dev \
     libvulkan-dev \
-    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
