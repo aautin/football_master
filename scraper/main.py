@@ -132,8 +132,10 @@ def insert_matches(connection, matches):
 		connection.rollback()
 
 
-def fetch_url(url, session=None):
-	time.sleep(7) # FBref rate limiting 10 requests per minute
+def fetch_url(url, session=None, competition_mode=False):
+	if competition_mode: time.sleep(5)
+	else: time.sleep(6)
+
 	try:
 		headers = {
 			'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0',
@@ -372,7 +374,7 @@ def run_scraper():
 			"/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures",
 			"/en/comps/20/schedule/Bundesliga-Scores-and-Fixtures"
 		]
-		competition_soups = [BeautifulSoup(fetch_url(base_url + entry, session), "html.parser") for entry in competition_entries]
+		competition_soups = [BeautifulSoup(fetch_url(base_url + entry, session, True), "html.parser") for entry in competition_entries]
 		# ---------------
 
 		competitions = getCompetitionsAttributes(competition_entries)

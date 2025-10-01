@@ -110,7 +110,6 @@ void MainWindow::headerUi() {
 	btMinimize->setIcon(QIcon(":/assets/minimize.png"));
 	btMinimize->setIconSize(btMinimize->size() * 0.9);
 	btMinimize->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-	btMinimize->setCheckable(true);
 	btMinimize->setStyleSheet(QString(
 		"QPushButton { color: %1; background-color: %2; border: 2px solid %3; } "
 		"QPushButton:hover { background-color: %4; } "
@@ -240,6 +239,7 @@ void MainWindow::wireServicesSignals() {
 	});
 	connect(scraper, &Scraper::ran, this, [this]() {
     	btRefresh->setEnabled(true);
+		btRefresh->setChecked(false);
 		QMetaObject::invokeMethod(database, "update", Qt::QueuedConnection);
 
 		debug("Scraping is ran.", _debug);
@@ -310,7 +310,7 @@ void MainWindow::wireServicesSignals() {
 }
 
 void MainWindow::wireOtherSignals() {
-	connect(btMinimize, &QPushButton::clicked, this, [this]() { this->showMinimized(); });
+	connect(btMinimize, &QPushButton::clicked, this, [this]() { this->showMinimized(); this->showNormal(); });
 	connect(btClose, &QPushButton::clicked, this, [this]() {
 		databaseThread->quit();
 		scraperThread->quit();
