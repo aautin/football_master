@@ -1,13 +1,16 @@
 # Football Master
 
 
+
 <img src="./assets/demo.gif" alt="Demo" width="650" />
 
-> Aperçu animé de l'application Qt Football Master
+> Animated preview of the Qt Football Master application
+
 
 <img src="./assets/ui_diagram.png" alt="UI Diagram" width="350"/>
 
-> Schéma de l'interface utilisateur principale
+> Main user interface diagram
+
 
 
 ## Architecture & Interactions
@@ -20,13 +23,13 @@ flowchart TD
         QtApp[Qt C++ App]
     end
 
-    User((User)) -->|Lance l'app Qt| QtApp
-    QtApp -->|Lit les données| DB
-    QtApp -->|Demande un scraping| Scraper
-    Scraper -->|Récupère des données| ExternalAPIs[(Football APIs)]
-    Scraper -->|Insère dans DB| DB
-    DB -->|Fournit les données| QtApp
-    QtApp -->|Affiche l'UI| User
+    User((User)) -->|Launches Qt app| QtApp
+    QtApp -->|Reads data| DB
+    QtApp -->|Requests scraping| Scraper
+    Scraper -->|Fetches data| ExternalAPIs[(Football APIs)]
+    Scraper -->|Inserts into DB| DB
+    DB -->|Provides data| QtApp
+    QtApp -->|Displays UI| User
 
     style DB fill:#f9f,stroke:#333,stroke-width:2px
     style Scraper fill:#bbf,stroke:#333,stroke-width:2px
@@ -35,35 +38,37 @@ flowchart TD
     style ExternalAPIs fill:#eee,stroke:#333,stroke-width:2px
 ```
 
-**Fonctionnement global :**
-- Démarrage des services Docker (DB, Scraper, Qt)
-- Le Scraper collecte et insère les données dans la DB
-- L'application Qt lit, analyse et affiche les données
+**Global workflow:**
+- Start Docker services (DB, Scraper, Qt)
+- Scraper collects and inserts data into the DB
+- The Qt application reads, analyzes, and displays the data
+
 
 
 ## Quick Start
 
-1. Configurez votre fichier `.env` (voir exemple ci-dessous)
-2. Démarrez tous les services :
-	```sh
-	make up
-	```
-3. Build l'application Qt :
-	```sh
-	make build
-	```
-4. Lancez l'application Qt (avec X11 forwarding si besoin) :
-	```sh
-	make run
-	```
+1. Configure your `.env` file (see example below)
+2. Start all services:
+    ```sh
+    make up
+    ```
+3. Build the Qt application:
+    ```sh
+    make build
+    ```
+4. Run the Qt application (with X11 forwarding if needed):
+    ```sh
+    make run
+    ```
 
-## Structure du projet
 
-- `db/` : Initialisation et données de la base PostgreSQL
-- `scraper/` : Scraper Python (Flask, requests, BeautifulSoup, psycopg2)
-- `qt/` : Application Qt/C++ (analyse et visualisation)
+## Project Structure
 
-## Exemple de fichier .env
+- `db/` : PostgreSQL initialization and data
+- `scraper/` : Python scraper (Flask, requests, BeautifulSoup, psycopg2)
+- `qt/` : Qt/C++ application (analysis and visualization)
+
+## Example .env file
 
 ```
 DB_USER=football_user
@@ -72,6 +77,7 @@ DB_NAME=football_db
 PROJECT_NAME=football_master
 EXECUTABLE=football_master
 ```
+
 
 
 ## Requirements
