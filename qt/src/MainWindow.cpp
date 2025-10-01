@@ -70,11 +70,10 @@ MainWindow::~MainWindow() {
 void MainWindow::windowUi() {
 	this->setWindowFlags(Qt::FramelessWindowHint);
 	this->setFixedSize(QSize(700, 650));
-	this->setProperty("variant", "mainWindow");
-	this->setStyleSheet("[variant=mainWindow] { border: 2px solid #e8e8e8ff; }");
-	
-	QScreen* primaryScreen = QGuiApplication::primaryScreen();
-	QRect screenGeometry = primaryScreen->geometry();
+	this->setStyleSheet(QString("background-color: %1; border: 2px solid %2;").arg(COLOR_BG, COLOR_BORDER));
+
+	QScreen* screen = QGuiApplication::primaryScreen();
+	QRect screenGeometry = screen->geometry();
 	int x = screenGeometry.x() + (screenGeometry.width() - this->width()) / 2;
 	int y = screenGeometry.y() + (screenGeometry.height() - this->height()) / 2;
 	this->move(x, y);
@@ -86,32 +85,49 @@ void MainWindow::headerUi() {
 	titleBar->setText("Football Master");
 	titleBar->setAlignment(Qt::AlignCenter);
 	titleBar->setFont(QFont("Arial", 16, QFont::Bold));
+	titleBar->setStyleSheet(QString("color: %1; background-color: %2; border: none;").arg(COLOR_HEADER_TEXT, COLOR_BG));
 
 	updateDate = new QLabel(this);
 	grid->addWidget(updateDate, 0, 9, 1, 3);
 	updateDate->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 	updateDate->setFont(QFont("Arial", 7, QFont::Normal));
+	updateDate->setStyleSheet(QString("color: %1; background-color: %2; border: none;").arg(COLOR_HEADER_TEXT, COLOR_BG));
 
 	btRefresh = new QPushButton(this);
-	btRefresh->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff");
 	grid->addWidget(btRefresh, 0, 12, 1, 1);
 	btRefresh->setIcon(QIcon(":/assets/refresh.png"));
 	btRefresh->setIconSize(btRefresh->size() * 0.9);
 	btRefresh->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	btRefresh->setCheckable(true);
+	btRefresh->setStyleSheet(QString(
+		"QPushButton { color: %1; background-color: %2; border: 2px solid %3; } "
+		"QPushButton:hover { background-color: %4; } "
+		"QPushButton:checked { background-color: %5; }"
+	).arg(COLOR_BUTTON_TEXT, COLOR_BUTTON_BG, COLOR_BORDER, COLOR_BUTTON_BG_HOVER, COLOR_BUTTON_BG_CHECKED));
 
 	btMinimize = new QPushButton(this);
-	btMinimize->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff");
 	grid->addWidget(btMinimize, 0, 13, 1, 1);
 	btMinimize->setIcon(QIcon(":/assets/minimize.png"));
 	btMinimize->setIconSize(btMinimize->size() * 0.9);
 	btMinimize->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	btMinimize->setCheckable(true);
+	btMinimize->setStyleSheet(QString(
+		"QPushButton { color: %1; background-color: %2; border: 2px solid %3; } "
+		"QPushButton:hover { background-color: %4; } "
+		"QPushButton:checked { background-color: %5; }"
+	).arg(COLOR_BUTTON_TEXT, COLOR_BUTTON_BG, COLOR_BORDER, COLOR_BUTTON_BG_HOVER, COLOR_BUTTON_BG_CHECKED));
 
 	btClose = new QPushButton(this);
-	btClose->setStyleSheet("background: #8e737d; border: 2px solid #e8e8e8ff");
 	grid->addWidget(btClose, 0, 14, 1, 1);
 	btClose->setIcon(QIcon(":/assets/close.png"));
 	btClose->setIconSize(btClose->size() * 1);
 	btClose->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	btClose->setCheckable(true);
+	btClose->setStyleSheet(QString(
+		"QPushButton { color: %1; background-color: %2; border: 2px solid %3; } "
+		"QPushButton:hover { background-color: %4; } "
+		"QPushButton:checked { background-color: %5; }"
+	).arg(COLOR_BUTTON_TEXT, COLOR_BUTTON_BG, COLOR_BORDER, COLOR_BUTTON_BG_HOVER, COLOR_BUTTON_BG_CHECKED));
 }
 
 void MainWindow::centralUi() {
@@ -131,47 +147,42 @@ void MainWindow::centralUi() {
 	}
 
 	for (int i = 0; i < 4; ++i) {
-	    chartViews[i] = new QChartView(new QChart());
+		chartViews[i] = new QChartView(new QChart());
 		clearChart(chartViews[i]);
-		chartViews[i]->chart()->setBackgroundBrush(QBrush(QColor("#6b7888")));
 		chartViews[i]->setRenderHint(QPainter::Antialiasing);
-		chartViews[i]->setProperty("variant", "chartView");
-		chartViews[i]->setStyleSheet("[variant=chartView] { background: #6b7888; border: 2px solid #e8e8e8ff }");
 		chartViews[i]->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 		chartViews[i]->chart()->setMargins(QMargins(0, 0, 0, 0));
+		chartViews[i]->setStyleSheet(QString("background-color: %1; border: 2px solid %2;").arg(COLOR_CHART_BG, COLOR_BORDER));
+		chartViews[i]->chart()->setBackgroundBrush(QBrush(QColor(qcolorFromRgbaString(COLOR_CHART_BG))));
+		grid->addWidget(chartViews[i], 1 + (6 * (i / 2)), (i % 2) * 6, 6, 6);
 	}
-	
-	grid->addWidget(chartViews[0], 1, 0, 6, 6);   // Top-left
-	grid->addWidget(chartViews[1], 1, 6, 6, 6);   // Top-right
-	grid->addWidget(chartViews[2], 7, 0, 6, 6);   // Bottom-left
-	grid->addWidget(chartViews[3], 7, 6, 6, 6);   // Bottom-right
 }
 
 void MainWindow::sidebarUi() {
 	QScrollArea* competitionsArea = new QScrollArea();
-	competitionsArea->setProperty("variant", "area");
-	competitionsArea->setStyleSheet("[variant=area] { background: #6b7888; border: 2px solid #e8e8e8ff; }");
 	competitionsArea->setWidgetResizable(true);
 	competitionsArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	competitionsArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	grid->addWidget(competitionsArea, 1, 12, 6, 3);
 	competitionsLayout = getScrollAreaLayout(competitionsArea);
+	competitionsArea->setStyleSheet(QString("border: 2px solid %1;").arg(COLOR_BORDER));
+	competitionsArea->widget()->setStyleSheet(QString("background-color: %1; border: none;").arg(COLOR_CHART_BG, COLOR_BORDER));
 	competitionsLayout->setAlignment(Qt::AlignTop);
 	competitionsGroup = new QButtonGroup();
 	competitionsGroup->setExclusive(true);
 
 	QScrollArea* teamsArea = new QScrollArea();
-	teamsArea->setProperty("variant", "area");
-	teamsArea->setStyleSheet("[variant=area] { background: #6b7888; border: 2px solid #e8e8e8ff; }");
 	teamsArea->setWidgetResizable(true);
 	teamsArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	teamsArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	grid->addWidget(teamsArea, 7, 12, 6, 3);
 	teamsLayout = getScrollAreaLayout(teamsArea);
+	teamsArea->widget()->setStyleSheet(QString("background-color: %1; border: none;").arg(COLOR_CHART_BG, COLOR_BORDER));
 	teamsLayout->setAlignment(Qt::AlignTop);
 	teamsGroup = new QButtonGroup();
 	teamsGroup->setExclusive(false);
 }
+
 
 
 
@@ -252,32 +263,47 @@ void MainWindow::wireServicesSignals() {
 		for (auto chartView : chartViews) clearChart(chartView);
 		chartViews[0]->chart()->setTitle(QString("Performance of %1").arg(teamName));
 
-		chartViews[0]->chart()->addSeries(createLineSeries(points[0], "Goals For", 4, QColor(100, 200, 100)));
-		chartViews[0]->chart()->addSeries(createLineSeries(points[1], "Goals Against", 2, QColor(220, 100, 100)));
-		chartViews[0]->chart()->createDefaultAxes();
-		chartViews[0]->chart()->axes(Qt::Vertical).first()->setRange(0, 10);
-		chartViews[0]->chart()->axes(Qt::Horizontal).first()->hide();
-		QValueAxis* axisY = qobject_cast<QValueAxis*>(chartViews[0]->chart()->axes(Qt::Vertical).first());
-		axisY->setTickCount(11);
-		axisY->setLabelFormat("%d");
+		const QString seriesInfo[4][2] = {
+			{ QStringLiteral("Goals For"),		QStringLiteral("Goals Against") },
+			{ QStringLiteral("Possession (%)"),	QString("") },
+			{ QStringLiteral("Shots"),			QStringLiteral("Shots on target") },
+			{ QStringLiteral("Passes"),			QStringLiteral("Successful Passes") },
+		};
+		const int yAxes[4][2] = { { 1, 10 }, { 10, 100 }, { 5, 40 }, { 100, 1000 } };
+		for (int i = 0; i < 4; ++i) {
+			chartViews[i]->chart()->addSeries(createLineSeries(points[i * 2], seriesInfo[i][0], 4, QColor(50, 220, 50)));
+			if (!seriesInfo[i][1].isEmpty())
+				chartViews[i]->chart()->addSeries(createLineSeries(points[i * 2 + 1], seriesInfo[i][1], 2, QColor(240, 50, 50)));
 
-		QValueAxis* axisX = qobject_cast<QValueAxis*>(chartViews[0]->chart()->axes(Qt::Horizontal).first());
-		QCategoryAxis* axisXcat = new QCategoryAxis();
-		if (opponents[0].size() > 6)
-			axisXcat->append(opponents[0].left(6), 1);
-		else
-			axisXcat->append(opponents[0], 1);
-		for (int i = 1; i < opponents.size(); ++i)
-			axisXcat->append(opponents[i], i + 1);
-		axisXcat->setRange(1, opponents.size());
-		axisXcat->setLabelsPosition(QCategoryAxis::AxisLabelsPositionOnValue);
-		QFont axisFont = axisXcat->labelsFont();
-		axisFont.setPointSize(7);
-		axisXcat->setLabelsFont(axisFont);
+			chartViews[i]->chart()->createDefaultAxes();
+			chartViews[i]->chart()->axes(Qt::Horizontal).first()->hide();
 
-		chartViews[0]->chart()->addAxis(axisXcat, Qt::AlignBottom);
-		for (auto series : chartViews[0]->chart()->series())
-			series->attachAxis(axisXcat);
+			QValueAxis* axisY = qobject_cast<QValueAxis*>(chartViews[i]->chart()->axes(Qt::Vertical).first());
+			axisY->setTickCount((yAxes[i][1] / yAxes[i][0]) + 1);
+			axisY->setLabelFormat("%d");
+			axisY->setRange(0, yAxes[i][1]);
+
+		}
+		
+		for (int i = 0; i < 4; ++i) {
+			QCategoryAxis* axisXcat = new QCategoryAxis();
+			if (opponents[0].size() > 6)
+				axisXcat->append(opponents[0].left(6), 1);
+			else
+				axisXcat->append(opponents[0], 1);
+			for (int j = 1; j < opponents.size(); ++j)
+				axisXcat->append(opponents[j], j + 1);
+
+			axisXcat->setRange(1, opponents.size());
+			axisXcat->setLabelsPosition(QCategoryAxis::AxisLabelsPositionOnValue);
+			QFont axisFont = axisXcat->labelsFont();
+			axisFont.setPointSize(5);
+			axisXcat->setLabelsFont(axisFont);
+
+			chartViews[i]->chart()->addAxis(axisXcat, Qt::AlignBottom);
+			for (auto series : chartViews[i]->chart()->series())
+				series->attachAxis(axisXcat);
+		}
 
 		debug("Analyzer is analyzed.", _debug);
 	});
@@ -330,10 +356,6 @@ void MainWindow::removeButtons(QBoxLayout* layout, QButtonGroup* group) {
 void MainWindow::fillButtonsGroup(QBoxLayout* layout, QButtonGroup* group, const QStringList& buttons) {
 	for (const QString& buttonText : buttons) {
 		QPushButton* button = new QPushButton(buttonText, this);
-		button->setStyleSheet(
-			"QPushButton { background: #8e737d; border: 2px solid #e8e8e8ff; color: white; }"
-			"QPushButton:checked { background: #4a5a6a; color: #ffd700; }"
-		);
 		button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 		QFontMetrics fm(button->font());
 		QString elidedText = fm.elidedText(button->text(), Qt::ElideRight, button->width() + 15);
@@ -341,15 +363,19 @@ void MainWindow::fillButtonsGroup(QBoxLayout* layout, QButtonGroup* group, const
 		button->setProperty("fullName", buttonText);
 		button->setCheckable(true);
 		button->setFixedHeight(40);
+		button->setStyleSheet(QString(
+			"QPushButton { color: %1; background-color: %2; border: 2px solid %3; } "
+			"QPushButton:hover { background-color: %4; } "
+			"QPushButton:checked { background-color: %5; }"
+		).arg(COLOR_BUTTON_TEXT, COLOR_BUTTON_BG, COLOR_BORDER, COLOR_BUTTON_BG_HOVER, COLOR_BUTTON_BG_CHECKED));
 		group->addButton(button);
 		layout->addWidget(button);
 	}
 }
 
 QVBoxLayout* MainWindow::getScrollAreaLayout(QScrollArea *area) {
-	QWidget* container = new QWidget();
+	QWidget* container = new QWidget(this);
 	area->setWidget(container);
-	container->setStyleSheet("background: #6b7888;");
 
 	QVBoxLayout* layout = new QVBoxLayout();
 	container->setLayout(layout);

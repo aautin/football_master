@@ -19,6 +19,15 @@ class Analyzer;
 class Database;
 class Scraper;
 class MainWindow : public QMainWindow {
+	// Color constants for easy UI customization
+	const QString COLOR_BG = "rgba(8, 72, 135, 1)";
+	const QString COLOR_HEADER_TEXT = "rgba(247, 245, 251, 1)";
+	const QString COLOR_BUTTON_TEXT = "rgba(247, 245, 251, 1)";
+	const QString COLOR_BUTTON_BG = "rgba(214, 127, 45, 1)";
+	const QString COLOR_BUTTON_BG_HOVER = "rgba(143, 105, 69, 1)";
+	const QString COLOR_BUTTON_BG_CHECKED = "rgba(107, 66, 27, 1)";
+	const QString COLOR_BORDER = "rgba(214, 211, 226, 1)";
+	const QString COLOR_CHART_BG = "rgba(144, 156, 194, 1)";
 	Q_OBJECT
 
 	public:
@@ -31,6 +40,7 @@ class MainWindow : public QMainWindow {
 		void	headerUi();
 		void	centralUi();
 		void	sidebarUi();
+		void	styleSheetUi();
 
 		// Wire signals
 		void	wireServicesSignals();
